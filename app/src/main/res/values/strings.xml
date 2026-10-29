@@ -22,9 +22,11 @@
     <string name="widget_wide_label">氛围灯 · 开关 + 六色（4×1）</string>
     <string name="widget_square_label">氛围灯 · 六色方卡（2×2）</string>
     <string name="widget_big_label">氛围灯 · 完整卡片（4×2）</string>
+    <string name="widget_tall_label">氛围灯 · 竖版卡片（2×4）</string>
 
     <string name="widget_small_desc">只放一个开关，占 2×1。</string>
     <string name="widget_wide_desc">一行放下开关和六个颜色按钮，占 4×1。</string>
     <string name="widget_square_desc">开关加 3×2 颜色网格，占 2×2。</string>
     <string name="widget_big_desc">标题、开关、六个大色块和打开按钮，占 4×2。</string>
+    <string name="widget_tall_desc">竖版：开关加上下排列的六个颜色，占 2×4。</string>
 </resources>

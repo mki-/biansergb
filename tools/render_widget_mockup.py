@@ -184,6 +184,21 @@ def draw_big(img, x, y, f, s):
     pill(img, (x + 312, y + 134, x + 384, y + 164), "打开", f["label"], solid_gradient=True)
 
 
+def draw_tall(img, x, y, f, s):
+    """2x4 portrait card: 2-column x 3-row swatch grid."""
+    card(img, (x, y, x + 176, y + 400))
+    d = ImageDraw.Draw(img)
+    text(d, (x + 18, y + 26), "氛围灯", f["bold"], WHITE)
+    pill(img, (x + 104, y + 12, x + 160, y + 44), "开", f["label"])
+    for row in range(3):
+        for col in range(2):
+            cx = x + 58 + col * 62
+            cy = y + 104 + row * 96
+            dot(img, cx, cy, 24, SWATCHES[row * 2 + col])
+    text(d, (x + 18, y + 366), "已开灯", f["tiny"], MUTED_70)
+    pill(img, (x + 104, y + 354, x + 160, y + 384), "打开", f["label"], solid_gradient=True)
+
+
 def main():
     f = {
         "title": font(26),
@@ -193,21 +208,21 @@ def main():
         "tiny": font(13),
     }
 
-    W, H = 760, 470
+    W, H = 980, 580
     img = Image.new("RGBA", (W, H), (6, 5, 14, 255))
     vgrad(img, (0, 0, W, H), INK_INDIGO, SLATE_950)
 
     # ambient orbs so the cards sit on something
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ld = ImageDraw.Draw(layer)
-    for (cx, cy, r, c, a) in ((80, 40, 220, VIOLET_500, 90), (700, 80, 200, FUCHSIA_500, 80),
-                              (420, 470, 240, CYAN_500, 60)):
+    for (cx, cy, r, c, a) in ((90, 40, 240, VIOLET_500, 90), (880, 90, 220, FUCHSIA_500, 80),
+                              (520, 580, 260, CYAN_500, 60)):
         ld.ellipse((cx - r, cy - r, cx + r, cy + r), fill=c + (a,))
     img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(50)))
 
     d = ImageDraw.Draw(img)
     text(d, (36, 22), "氛围灯 · 桌面卡片（App Widget）", f["title"], WHITE)
-    text(d, (36, 54), "渐变卡片 + 开关 + 六个颜色按钮；任意点击都会自动连接 FF:FF:10:98:3C:D9",
+    text(d, (36, 54), "五种尺寸：横卡、方卡，以及 2×4 竖卡；任意点击都会自动连接 FF:FF:10:98:3C:D9",
          f["tiny"], MUTED_55)
 
     draw_wide(img, 36, 104, f, None)
@@ -216,11 +231,15 @@ def main():
     text(d, (36, 176), "4×1  开关 + 六色", f["tiny"], (255, 193, 7))
     text(d, (470, 176), "2×1  只有开关", f["tiny"], (255, 193, 7))
 
-    draw_big(img, 36, 210, f, None)
-    draw_square(img, 470, 210, f, None)
+    draw_big(img, 36, 206, f, None)
+    draw_square(img, 470, 206, f, None)
     d = ImageDraw.Draw(img)
-    text(d, (36, 394), "4×2  完整卡片（含打开按钮）", f["tiny"], (255, 193, 7))
-    text(d, (470, 394), "2×2  3×2 色块方卡", f["tiny"], (255, 193, 7))
+    text(d, (36, 390), "4×2  完整卡片（含打开按钮）", f["tiny"], (255, 193, 7))
+    text(d, (470, 390), "2×2  3×2 色块方卡", f["tiny"], (255, 193, 7))
+
+    draw_tall(img, 744, 104, f, None)
+    d = ImageDraw.Draw(img)
+    text(d, (744, 512), "2×4  竖版（新增）", f["tiny"], (255, 193, 7))
     text(d, (36, 424), "尺寸按 dp 设计，车机 800×480 与手机桌面通用；点按卡片 = 打开 App 并自动连接",
          f["tiny"], MUTED_55)
 

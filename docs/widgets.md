@@ -1,6 +1,6 @@
 # 桌面卡片（App Widget）
 
-氛围灯提供 **4 种尺寸**的桌面卡片，都带开关和六个颜色按钮，**任意点击都会自动连接
+氛围灯提供 **5 种尺寸**的桌面卡片，都带开关和六个颜色按钮，**任意点击都会自动连接
 `FF:FF:10:98:3C:D9`**。
 
 ![桌面卡片设计稿](widget-mockup.png)
@@ -12,7 +12,10 @@
 | `SmallLampWidgetProvider` | 2×1 | 110×40 dp | 标题 + 状态 + 开关 |
 | `WideLampWidgetProvider` | 4×1 | 250×40 dp | 开关 + 六色（一行） |
 | `SquareLampWidgetProvider` | 2×2 | 110×110 dp | 标题 + 开关 + 3×2 色块 |
+| `TallLampWidgetProvider` | **2×4** | **110×250 dp** | **竖版**：标题 + 开关 + 2×3 色块 + 打开 |
 | `BigLampWidgetProvider` | 4×2 | 250×110 dp | 标题 + 开关 + 六个大色块 + 打开按钮 |
+
+竖卡（2×4）的色块按 **2 列 × 3 行**排列，适合桌面上的窄长空位；最小可缩到 110×180 dp。
 
 - 支持 `resizeMode="horizontal|vertical"`，用户可自由拉宽拉高
 - Android 12+ 有 `targetCellWidth/Height` 和 `previewLayout`，选择器里显示真实预览

@@ -79,6 +79,20 @@ class BigLampWidgetProvider : BaseLampWidgetProvider() {
     }
 }
 
+/** 2×4 portrait card — for tall home-screen slots. */
+class TallLampWidgetProvider : BaseLampWidgetProvider() {
+    override val spec: WidgetSpec get() = SPEC
+
+    companion object {
+        val SPEC = WidgetSpec(
+            layoutId = R.layout.widget_tall,
+            hasColors = true,
+            hasState = true,
+            hasOpen = true,
+        )
+    }
+}
+
 /**
  * Re-renders every placed card. Called when the app learns a new power state, so the
  * toggle label stays honest without the widget doing BLE work itself.
@@ -92,6 +106,7 @@ object WidgetUpdater {
         Entry(WideLampWidgetProvider::class.java, WideLampWidgetProvider.SPEC),
         Entry(SquareLampWidgetProvider::class.java, SquareLampWidgetProvider.SPEC),
         Entry(BigLampWidgetProvider::class.java, BigLampWidgetProvider.SPEC),
+        Entry(TallLampWidgetProvider::class.java, TallLampWidgetProvider.SPEC),
     )
 
     fun refreshAll(context: Context) {
