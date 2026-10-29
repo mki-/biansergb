@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  mdpi override for head units (e.g. the 187B: 800x480 on a 5" panel).
+
+  Such a panel is ~186 dpi physically but almost always reports density 160
+  (ro.sf.lcd_density=160), so the screen becomes 800x480 **dp** — a very large dp
+  canvas. Defaults sized for a phone would look small and lost there.
+
+  Physical check on a 187B (1 dp = 1 px = 1/186" ≈ 0.137 mm):
+    power button 52dp -> 52 px -> ~7.1 mm   (comfortable touch target in a car)
+    strip height 36dp -> 36 px -> ~4.9 mm   (tall enough to hit with a thumb)
+  Swatches are not listed: they scale with their cell (vector + fitCenter).
+-->
+<resources>
+    <dimen name="widget_card_padding">12dp</dimen>
+    <dimen name="widget_power_size">52dp</dimen>
+    <dimen name="widget_power_text">17sp</dimen>
+    <dimen name="widget_title_text">18sp</dimen>
+    <dimen name="widget_state_text">13sp</dimen>
+    <dimen name="widget_strip_height">36dp</dimen>
+    <dimen name="widget_cell_margin">5dp</dimen>
+</resources>

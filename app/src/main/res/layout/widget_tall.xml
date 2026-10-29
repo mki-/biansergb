@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  2x4 portrait card, CarPlay-inspired: one big round power button, an evenly spaced
-  3x2 swatch grid, and a segmented hue strip (the closest a home-screen widget can get
-  to a colour slider — RemoteViews has no SeekBar).
+  2x4 portrait card — CarPlay-style dashboard tile.
 
-  Background tap opens the app; every control fires a broadcast and drives the lamp
-  without leaving the launcher.
+  Swatches are ImageViews with a vector `src` + scaleType=fitCenter inside weighted
+  cells, so they grow with whatever space the launcher grants. That is what makes the
+  card work on a 5" 800x480 head unit (mdpi -> 800x480 dp canvas, lots of room) and on
+  a phone (xhdpi -> small dp canvas) without two layouts.
 
-  Sizing note: at minWidth 110dp the usable width is 90dp (10dp padding each side), so
-  two 36dp swatches + a 16dp gap = 88dp fits exactly. Do not enlarge the swatches
-  without also lowering the horizontal padding.
+  No swatch has a fixed dp size on purpose; only the chrome (power button, strip, type)
+  is density-tuned in res/values*/dimens.xml.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
@@ -17,12 +16,8 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:paddingStart="10dp"
-    android:paddingTop="10dp"
-    android:paddingEnd="10dp"
-    android:paddingBottom="10dp">
+    android:padding="@dimen/widget_card_padding">
 
-    <!-- header: title + round power button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -37,97 +32,107 @@
             android:maxLines="1"
             android:text="@string/widget_title"
             android:textColor="#FFFFFFFF"
-            android:textSize="14sp"
+            android:textSize="@dimen/widget_title_text"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_power"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/widget_power_size"
+            android:layout_height="@dimen/widget_power_size"
             android:background="@drawable/widget_circle_off"
             android:gravity="center"
             android:text="@string/widget_on"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="@dimen/widget_power_text"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- 3 rows x 2 cols, equal weight so the vertical rhythm stays even -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="6dp"
         android:layout_weight="1"
-        android:gravity="center"
         android:orientation="horizontal">
 
-        <ImageButton
+        <ImageView
             android:id="@+id/widget_color_0"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@drawable/widget_dot_white"
-            android:contentDescription="@string/widget_color_white" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_white"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_white" />
 
-        <ImageButton
+        <ImageView
             android:id="@+id/widget_color_1"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="16dp"
-            android:background="@drawable/widget_dot_pink"
-            android:contentDescription="@string/widget_color_pink" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_pink"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_pink" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
         android:orientation="horizontal">
 
-        <ImageButton
+        <ImageView
             android:id="@+id/widget_color_2"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@drawable/widget_dot_red"
-            android:contentDescription="@string/widget_color_red" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_red"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_red" />
 
-        <ImageButton
+        <ImageView
             android:id="@+id/widget_color_3"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="16dp"
-            android:background="@drawable/widget_dot_purple"
-            android:contentDescription="@string/widget_color_purple" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_purple"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_purple" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
         android:orientation="horizontal">
 
-        <ImageButton
+        <ImageView
             android:id="@+id/widget_color_4"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@drawable/widget_dot_blue"
-            android:contentDescription="@string/widget_color_blue" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_blue"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_blue" />
 
-        <ImageButton
+        <ImageView
             android:id="@+id/widget_color_5"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="16dp"
-            android:background="@drawable/widget_dot_cyan"
-            android:contentDescription="@string/widget_color_cyan" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_cyan"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_cyan" />
     </LinearLayout>
 
-    <!-- segmented hue strip: 6 steps of 60 degrees, reads as a colour slider -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:layout_marginTop="8dp"
+        android:layout_height="@dimen/widget_strip_height"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal">
 
         <ImageButton
@@ -192,5 +197,5 @@
         android:maxLines="1"
         android:text="@string/widget_state_connect"
         android:textColor="#8E8E93"
-        android:textSize="11sp" />
+        android:textSize="@dimen/widget_state_text" />
 </LinearLayout>

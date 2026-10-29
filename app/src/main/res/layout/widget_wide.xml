@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4x1 — one row: power toggle + six colour swatches. Tap card = open app. -->
+<!--
+  4x1 — round power + six swatches in one row.
+  Swatches use vector src + fitCenter + weight, so they fill the row height (and grow
+  on an 800x480 mdpi head unit) instead of being pinned to a dp size.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -7,67 +11,84 @@
     android:background="@drawable/widget_bg"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp"
-    android:paddingEnd="12dp">
+    android:padding="@dimen/widget_card_padding">
 
     <TextView
         android:id="@+id/widget_power"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="@dimen/widget_power_size"
+        android:layout_height="@dimen/widget_power_size"
         android:background="@drawable/widget_circle_off"
         android:gravity="center"
         android:text="@string/widget_on"
         android:textColor="#FFFFFFFF"
-        android:textSize="14sp"
+        android:textSize="@dimen/widget_power_text"
         android:textStyle="bold" />
 
-    <ImageButton
-        android:id="@+id/widget_color_0"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="10dp"
-        android:background="@drawable/widget_dot_white"
-        android:contentDescription="@string/widget_color_white" />
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
 
-    <ImageButton
-        android:id="@+id/widget_color_1"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="6dp"
-        android:background="@drawable/widget_dot_pink"
-        android:contentDescription="@string/widget_color_pink" />
+        <ImageView
+            android:id="@+id/widget_color_0"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_white"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_white" />
 
-    <ImageButton
-        android:id="@+id/widget_color_2"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="6dp"
-        android:background="@drawable/widget_dot_red"
-        android:contentDescription="@string/widget_color_red" />
+        <ImageView
+            android:id="@+id/widget_color_1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_pink"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_pink" />
 
-    <ImageButton
-        android:id="@+id/widget_color_3"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="6dp"
-        android:background="@drawable/widget_dot_purple"
-        android:contentDescription="@string/widget_color_purple" />
+        <ImageView
+            android:id="@+id/widget_color_2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_red"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_red" />
 
-    <ImageButton
-        android:id="@+id/widget_color_4"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="6dp"
-        android:background="@drawable/widget_dot_blue"
-        android:contentDescription="@string/widget_color_blue" />
+        <ImageView
+            android:id="@+id/widget_color_3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_purple"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_purple" />
 
-    <ImageButton
-        android:id="@+id/widget_color_5"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="6dp"
-        android:background="@drawable/widget_dot_cyan"
-        android:contentDescription="@string/widget_color_cyan" />
+        <ImageView
+            android:id="@+id/widget_color_4"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_blue"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_blue" />
+
+        <ImageView
+            android:id="@+id/widget_color_5"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_color_cyan"
+            android:padding="@dimen/widget_cell_margin"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_dot_cyan" />
+    </LinearLayout>
 </LinearLayout>

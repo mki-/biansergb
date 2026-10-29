@@ -184,9 +184,9 @@ def draw_tall(img, x, y, f):
 
     for row in range(3):
         for col in range(2):
-            dot(img, x + 52 + col * 72, y + 118 + row * 72, 24, SWATCH_COLORS[row * 2 + col])
+            dot(img, x + 52 + col * 72, y + 118 + row * 72, 28, SWATCH_COLORS[row * 2 + col])
 
-    hue_strip(img, x + 16, y + 320, 144, 40)
+    hue_strip(img, x + 16, y + 322, 144, 44)
     d.text((x + 16, y + 376), "已开灯", font=f["small"], fill=IOS_SECONDARY)
 
 
@@ -226,7 +226,7 @@ def main():
 
     d = ImageDraw.Draw(img)
     d.text((36, 20), "氛围灯 · 桌面卡片（App Widget）", font=f["title"], fill=WHITE)
-    d.text((36, 52), "CarPlay 风格：深色磁贴 + 大圆角 + iOS 系统色控件；控件后台直连，不唤起 App",
+    d.text((36, 52), "CarPlay 风格 + 按 187B（800x480 / 5 寸）校准：色块随卡片自适应，开关 52dp≈7mm，色带 36dp",
            font=f["small"], fill=(170, 165, 185))
 
     draw_wide(img, 36, 100, f)

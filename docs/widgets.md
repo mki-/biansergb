@@ -9,8 +9,8 @@
 
 | 卡片 | 占用格 | 最小尺寸 | 内容 |
 |---|---|---|---|
-| `SmallLampWidgetProvider` | 2×1 | 110×48 dp | 标题 + 状态 + 圆形开关 |
-| `WideLampWidgetProvider` | 4×1 | 250×48 dp | 圆形开关 + 六色（一行） |
+| `SmallLampWidgetProvider` | 2×1 | 110×80 dp | 标题 + 状态 + 圆形开关 |
+| `WideLampWidgetProvider` | 4×1 | 250×80 dp | 圆形开关 + 六色（一行） |
 | `SquareLampWidgetProvider` | 2×2 | 110×110 dp | 标题 + 圆形开关 + 3×2 色块 |
 | `TallLampWidgetProvider` | **2×4** | **110×250 dp** | **CarPlay 风格**：圆形开关 + 2×3 色块 + 分段色带 |
 | `BigLampWidgetProvider` | 4×2 | 250×110 dp | 标题 + 圆形开关 + 六个大色块 + 打开按钮 |
@@ -110,7 +110,49 @@ Glance（Compose for widgets）要新增依赖，且 `background` 只接受纯�
 
 代价：只能用 `LinearLayout` / `ImageView` 这类老式视图，写不了 Compose。
 
-## 6. 改配置
+## 6. 800×480 / 5 寸车机适配（187B）
+
+这类车机有几个容易踩的点：
+
+| 事实 | 影响 |
+|---|---|
+| 5 寸面板 800×480，实际约 **186 dpi** | 面板比 mdpi(160) 密 |
+| 车机基本都上报 `ro.sf.lcd_density=160` | 于是屏幕变成 **800×480 dp**，dp 画布极大 |
+| 1 dp = 1 px = 1/186" ≈ **0.137 mm** | 同样的 dp，物理尺寸只有手机的 ~86% |
+
+所以**写死 dp 在这类机器上必然偏小**。这里分两层处理。
+
+### 6.1 色块：完全自适应（不写死尺寸）
+
+色块是 **vector drawable + `ImageView scaleType="fitCenter"` + `layout_weight`**，
+放在加权单元格里：圆点自动取 `min(格宽, 格高)` 且保持正圆。
+
+| 屏幕 | 卡片实际拿到的 dp | 色块直径 |
+|---|---|---|
+| 800×480 mdpi 车机 | 约 400×480 dp | 约 100 dp ≈ **14 mm** |
+| 手机 (xhdpi) 2×4 | 约 120×260 dp | 约 48 dp ≈ **8 mm** |
+
+同一份布局在两种屏上都合适，不需要两套资源。
+
+### 6.2 固定元素：按密度分档
+
+| 元素 | 默认(hdpi/xhdpi) | tvdpi(213) | **mdpi(160)** |
+|---|---|---|---|
+| 开关圆 | 40 dp | 46 dp | **52 dp ≈ 7.1 mm** |
+| 色带高度 | 26 dp | 32 dp | **36 dp ≈ 4.9 mm** |
+| 标题 | 15 sp | 17 sp | **18 sp** |
+| 状态文字 | 11 sp | 12 sp | **13 sp** |
+| 卡片内边距 | 10 dp | 12 dp | **12 dp** |
+
+文件：`res/values/dimens.xml`、`values-tvdpi/dimens.xml`、`values-mdpi/dimens.xml`。
+
+1 行卡片（2×1 / 4×1）的 `minHeight` 提到 **80 dp**，保证 mdpi 下
+52 dp 圆按钮加内边距不会被卡片裁掉。
+
+> 换一台密度不同的车机（比如 240 dpi）时，只需再加一个 `values-hdpi/dimens.xml`，
+> 布局和代码都不用动。
+
+## 7. 改配置
 
 | 想改 | 改哪里 |
 |---|---|
@@ -122,7 +164,7 @@ Glance（Compose for widgets）要新增依赖，且 `background` 只接受纯�
 | 卡片背景渐变 | `res/drawable/widget_bg.xml` |
 | 卡片尺寸 | `res/xml/widget_*_info.xml` + `res/layout/widget_*.xml` |
 
-## 7. 自测清单
+## 8. 自测清单
 
 1. 长按桌面 → 卡片 → 应看到 **5 个**「氛围灯…」条目，且选择器里有预览
 2. **后台直连**（重点）：

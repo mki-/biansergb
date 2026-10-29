@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Swatch: flat fill + hairline ring, iOS control style. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="#FFFFFFFF" />
-    <stroke
-        android:width="1.5dp"
-        android:color="#33000000" />
-</shape>
+<!--
+  Swatches are VECTOR drawables with an intrinsic square size, used with
+  ImageView scaleType="fitCenter" inside a weighted cell. That makes the circle grow
+  with whatever space the launcher gives the card, so the same layout is comfortable
+  on a 5" 800x480 head unit (mdpi, huge dp canvas) and on a 1080p phone (xhdpi, small
+  dp canvas) without density-specific layouts.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="36"
+    android:viewportHeight="36">
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M18,18m-17,0a17,17 0 1,0 34,0a17,17 0 1,0 -34,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,18m-15,0a15,15 0 1,0 30,0a15,15 0 1,0 -30,0" />
+</vector>

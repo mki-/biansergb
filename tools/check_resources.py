@@ -49,6 +49,7 @@ def main() -> int:
     strings: set[str] = set()
     styles: set[str] = set()
     colors: set[str] = set()
+    dimens: set[str] = set()
     for d in os.listdir(RES):
         if not d.startswith('values'):
             continue
@@ -60,6 +61,7 @@ def main() -> int:
             strings |= set(re.findall(r'<string\s+name="([^"]+)"', text))
             styles |= set(re.findall(r'<style\s+name="([^"]+)"', text))
             colors |= set(re.findall(r'<color\s+name="([^"]+)"', text))
+            dimens |= set(re.findall(r'<dimen\s+name="([^"]+)"', text))
 
     ids: set[str] = set()
     xml_files: list[str] = []
@@ -86,6 +88,7 @@ def main() -> int:
         'style': styles,
         'color': colors,
         'anim': anims,
+        'dimen': dimens,
     }
     for path in xml_files:
         if not os.path.exists(path):
@@ -93,7 +96,7 @@ def main() -> int:
         text = open(path, encoding='utf-8').read()
         rel = os.path.relpath(path, ROOT)
 
-        for kind, name in re.findall(r'@(drawable|layout|xml|string|style|color|anim)/([A-Za-z0-9_.]+)', text):
+        for kind, name in re.findall(r'@(drawable|layout|xml|string|style|color|anim|dimen)/([A-Za-z0-9_.]+)', text):
             if name.startswith('android'):
                 continue
             if name not in tables[kind]:

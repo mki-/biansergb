@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 2x1 — compact: title + state on the left, power toggle on the right. -->
+<!-- 2x1 — title + state on the left, round power button on the right. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -7,10 +7,7 @@
     android:background="@drawable/widget_bg"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp"
-    android:paddingEnd="12dp">
+    android:padding="@dimen/widget_card_padding">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -25,7 +22,7 @@
             android:maxLines="1"
             android:text="@string/widget_title"
             android:textColor="#FFFFFFFF"
-            android:textSize="14sp"
+            android:textSize="@dimen/widget_title_text"
             android:textStyle="bold" />
 
         <TextView
@@ -35,17 +32,17 @@
             android:maxLines="1"
             android:text="@string/widget_state_connect"
             android:textColor="#8E8E93"
-            android:textSize="11sp" />
+            android:textSize="@dimen/widget_state_text" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/widget_power"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="@dimen/widget_power_size"
+        android:layout_height="@dimen/widget_power_size"
         android:background="@drawable/widget_circle_off"
         android:gravity="center"
         android:text="@string/widget_on"
         android:textColor="#FFFFFFFF"
-        android:textSize="14sp"
+        android:textSize="@dimen/widget_power_text"
         android:textStyle="bold" />
 </LinearLayout>

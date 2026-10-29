@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/widget_wide_desc"
     android:initialLayout="@layout/widget_wide"
-    android:minHeight="48dp"
+    android:minHeight="80dp"
     android:minResizeHeight="40dp"
     android:minResizeWidth="250dp"
     android:minWidth="250dp"

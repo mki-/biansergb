@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default card metrics — tuned for phones (hdpi/xhdpi), where the widget gets a small
+  dp canvas. Swatches are NOT listed here: they scale with their cell (vector +
+  fitCenter), so only the fixed chrome needs density tuning.
+-->
+<resources>
+    <dimen name="widget_card_padding">10dp</dimen>
+    <dimen name="widget_power_size">40dp</dimen>
+    <dimen name="widget_power_text">14sp</dimen>
+    <dimen name="widget_title_text">15sp</dimen>
+    <dimen name="widget_state_text">11sp</dimen>
+    <dimen name="widget_strip_height">26dp</dimen>
+    <dimen name="widget_cell_margin">3dp</dimen>
+</resources>

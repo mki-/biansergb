@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  tvdpi (213 dpi) lands between mdpi and hdpi; some 800x480 panels report this.
+  800x480 px / 213 dpi -> 601x361 dp, so the chrome sits between the two other buckets.
+-->
+<resources>
+    <dimen name="widget_card_padding">12dp</dimen>
+    <dimen name="widget_power_size">46dp</dimen>
+    <dimen name="widget_power_text">16sp</dimen>
+    <dimen name="widget_title_text">17sp</dimen>
+    <dimen name="widget_state_text">12sp</dimen>
+    <dimen name="widget_strip_height">32dp</dimen>
+    <dimen name="widget_cell_margin">4dp</dimen>
+</resources>
