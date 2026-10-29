@@ -1,10 +1,10 @@
 """
-render_layout_mockup.py — draws a schematic of the three adaptive layouts at their
-real aspect ratios so the layout density can be reviewed without a device.
+render_layout_mockup.py — schematic of the current UI on the two target screens.
 
-Not a screenshot: boxes/typography are approximations of the Compose tree.
+Not a screenshot: boxes/typography approximate the Compose tree; used to review
+density and proportions (800x480 car head unit vs. a phone).
 
-    python tools/render_layout_mockup.py            # writes docs/layout-mockup.png
+    python tools/render_layout_mockup.py     # writes docs/layout-mockup.png
 """
 
 from __future__ import annotations
@@ -18,17 +18,32 @@ PANEL_BG = (14, 15, 20)
 SURFACE = (23, 26, 34)
 SURFACE_HIGH = (35, 39, 53)
 PRIMARY = (79, 195, 247)
-ACCENT = (255, 193, 7)
+ON_PRIMARY = (0, 33, 46)
 ON = (230, 232, 239)
 MUTED = (154, 163, 178)
 OK = (102, 187, 106)
 OUTLINE = (52, 58, 74)
 
+# must mirror ui/Presets.kt
+PRESETS = [
+    # row 1
+    (255, 214, 170), (255, 241, 224), (255, 255, 255), (238, 245, 255),
+    (255, 240, 200), (255, 191, 0), (255, 215, 0), (255, 140, 0),
+    # row 2
+    (255, 99, 71), (255, 0, 0), (200, 20, 20), (139, 0, 0),
+    (255, 20, 147), (255, 105, 180), (255, 182, 193), (199, 21, 133),
+    # row 3
+    (138, 43, 226), (128, 0, 128), (75, 0, 130), (75, 0, 180),
+    (0, 0, 255), (0, 71, 171), (0, 150, 255), (0, 191, 255),
+    # row 4
+    (0, 255, 255), (64, 224, 208), (120, 240, 190), (0, 255, 0),
+    (0, 200, 83), (0, 128, 0), (173, 255, 47), (154, 205, 50),
+]
+
 FONT_CANDIDATES = [
     r"C:\Windows\Fonts\msyh.ttc",
     r"C:\Windows\Fonts\msyhl.ttc",
     r"C:\Windows\Fonts\simhei.ttf",
-    r"C:\Windows\Fonts\arial.ttf",
     "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 ]
@@ -52,215 +67,134 @@ def text(draw, xy, s, font, fill, anchor="la"):
     draw.text(xy, s, font=font, fill=fill, anchor=anchor)
 
 
-# --------------------------------------------------------------------- pieces
-def status_strip(draw, x, y, w, h, f, label):
+def tabs(draw, x, y, w, h, f, active=0):
+    labels = ["色彩", "模式", "设备", "关于"]
     rr(draw, (x, y, x + w, y + h), SURFACE, radius=0)
-    cy = y + h / 2
-    draw.ellipse((x + 12, cy - 5, x + 22, cy + 4), fill=OK)
-    text(draw, (x + 30, cy), label, f["small"], OK, anchor="lm")
-    text(draw, (x + w - 14, cy), "断开", f["small"], PRIMARY, anchor="rm")
-
-
-def tab_row(draw, x, y, w, h, f, labels, active=0):
-    rr(draw, (x, y, x + w, y + h), SURFACE, radius=0)
-    gap = 6
-    pad = 8
-    cell = (w - pad * 2 - gap * (len(labels) - 1)) / len(labels)
+    pad, gap = 8, 8
+    cell = (w - pad * 2 - gap * 3) / 4
     for i, lab in enumerate(labels):
         cx = x + pad + i * (cell + gap)
+        box = (cx, y + 7, cx + cell, y + h - 7)
         if i == active:
-            rr(draw, (cx, y + 4, cx + cell, y + h - 4), PRIMARY, radius=10)
-            text(draw, (cx + cell / 2, y + h / 2), lab, f["small"], (0, 33, 46), anchor="mm")
+            rr(draw, box, PRIMARY, radius=12)
+            text(draw, ((box[0] + box[2]) / 2, y + h / 2), lab, f["tab"], ON_PRIMARY, anchor="mm")
         else:
-            text(draw, (cx + cell / 2, y + h / 2), lab, f["small"], MUTED, anchor="mm")
+            text(draw, ((box[0] + box[2]) / 2, y + h / 2), lab, f["tab"], MUTED, anchor="mm")
 
 
-def bottom_bar(draw, x, y, w, h, f, labels, active=0):
+def status(draw, x, y, w, h, f):
+    rr(draw, (x, y, x + w, y + h), PANEL_BG, radius=0)
+    cy = y + h / 2
+    draw.ellipse((x + 12, cy - 5, x + 22, cy + 5), fill=OK)
+    text(draw, (x + 30, cy), "已连接  3F:2A:9C:11:04:8E", f["small"], OK, anchor="lm")
+    text(draw, (x + w - 14, cy), "断开", f["label"], PRIMARY, anchor="rm")
+
+
+def swatch_grid(draw, x, y, w, h, cols, gap, pad, f, selected=2):
+    rows = len(PRESETS) // cols
+    cell_w = (w - pad * 2 - gap * (cols - 1)) / cols
+    cell_h = (h - pad - gap * (rows - 1)) / rows
+    d = min(cell_w, cell_h)
+    total_w = cols * d + gap * (cols - 1)
+    left = x + (w - total_w) / 2
+    for r in range(rows):
+        for c in range(cols):
+            idx = r * cols + c
+            cx = left + c * (d + gap) + d / 2
+            cy = y + pad / 2 + r * (d + gap) + d / 2
+            color = PRESETS[idx]
+            draw.ellipse((cx - d / 2, cy - d / 2, cx + d / 2, cy + d / 2), fill=color)
+            if idx == selected:
+                luma = (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]) / 255
+                marker = (0, 0, 0) if luma > 0.6 else (255, 255, 255)
+                draw.ellipse((cx - d / 2, cy - d / 2, cx + d / 2, cy + d / 2), outline=marker, width=3)
+                rr(draw, (cx - d * 0.13, cy - d * 0.13, cx + d * 0.13, cy + d * 0.13), marker, radius=int(d * 0.13))
+
+
+def chip(draw, box, label, f, active=False):
+    rr(draw, box, PRIMARY if active else SURFACE_HIGH, radius=10)
+    text(draw, ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2), label, f["small"],
+         ON_PRIMARY if active else ON, anchor="mm")
+
+
+def control_bar(draw, x, y, w, h, f, stacked=False):
     rr(draw, (x, y, x + w, y + h), SURFACE, radius=0)
-    cell = w / len(labels)
-    for i, lab in enumerate(labels):
-        cx = x + cell * i + cell / 2
-        color = PRIMARY if i == active else MUTED
-        text(draw, (cx, y + h / 2), lab, f["small"], color, anchor="mm")
-        if i == active:
-            draw.ellipse((cx - 3, y + h - 12, cx + 3, y + h - 6), fill=PRIMARY)
+    pad = 12
+    inner = x + pad
+    iw = w - pad * 2
+    if stacked:
+        row_h = 48
+        zone = ["分区1", "分区2", "全区"]
+        cw = (iw - 8 * 2) / 3
+        for i, lab in enumerate(zone):
+            chip(draw, (inner + i * (cw + 8), y + 8, inner + i * (cw + 8) + cw, y + 8 + row_h), lab, f, active=(i == 2))
+        power = ["开启", "关闭", "跟随"]
+        for i, lab in enumerate(power):
+            chip(draw, (inner + i * (cw + 8), y + 8 + row_h + 6, inner + i * (cw + 8) + cw, y + 8 + row_h * 2 + 6), lab, f, active=(i == 0))
+        by = y + 8 + row_h * 2 + 6 + 6
+    else:
+        zone = ["分区1", "分区2", "全区"]
+        power = ["开启", "关闭", "跟随"]
+        n = 6
+        gap = 8
+        cw = (iw - gap * (n - 1) - 12) / n
+        labels = zone + power
+        for i, lab in enumerate(labels):
+            active = (i == 2) or (i == 3)
+            chip(draw, (inner + i * (cw + gap), y + 8, inner + i * (cw + gap) + cw, y + 8 + 48), lab, f, active=active)
+        by = y + 8 + 48 + 6
+
+    text(draw, (inner, by + 22), "亮度", f["small"], MUTED, anchor="lm")
+    tx0, tx1 = inner + 52, inner + iw - 46
+    ty = by + 22
+    draw.line((tx0, ty, tx1, ty), fill=OUTLINE, width=4)
+    draw.line((tx0, ty, tx0 + (tx1 - tx0) * 0.64, ty), fill=PRIMARY, width=4)
+    px = tx0 + (tx1 - tx0) * 0.64
+    draw.ellipse((px - 8, ty - 8, px + 8, ty + 8), fill=PRIMARY)
+    text(draw, (inner + iw, ty), "64", f["small"], PRIMARY, anchor="rm")
 
 
-def rail(draw, x, y, w, h, f, labels, active=0):
-    rr(draw, (x, y, x + w, y + h), SURFACE_HIGH, radius=0)
-    cell_h = 52
-    for i, lab in enumerate(labels):
-        cy = y + 10 + i * (cell_h + 6)
-        box = (x + 8, cy, x + w - 8, cy + cell_h)
-        if i == active:
-            rr(draw, box, PRIMARY, radius=10)
-            text(draw, ((box[0] + box[2]) / 2, cy + cell_h / 2), lab, f["small"], (0, 33, 46), anchor="mm")
-        else:
-            text(draw, ((box[0] + box[2]) / 2, cy + cell_h / 2), lab, f["small"], MUTED, anchor="mm")
-
-
-def wheel(draw, cx, cy, r):
-    # schematic hue ring: 12 wedges
-    import math
-
-    for i in range(36):
-        a0 = math.radians(i * 10)
-        a1 = math.radians((i + 1) * 10 + 0.6)
-        hue = i * 10
-        draw.pieslice(
-            (cx - r, cy - r, cx + r, cy + r),
-            start=i * 10,
-            end=(i + 1) * 10 + 0.6,
-            fill=_hsv(hue, 1.0, 1.0),
-        )
-        _ = (a0, a1)
-    rr(draw, (cx - r * 0.58, cy - r * 0.58, cx + r * 0.58, cy + r * 0.58), SURFACE, radius=int(r * 0.58))
-    draw.ellipse((cx - r * 0.44, cy - r * 0.44, cx + r * 0.44, cy + r * 0.44), fill=_hsv(200, 1, 1))
-    # thumb at hue 200 -> ~200 deg
-    t = math.radians(200)
-    tx, ty = cx + math.cos(t) * r * 0.76, cy + math.sin(t) * r * 0.76
-    draw.ellipse((tx - 7, ty - 7, tx + 7, ty + 7), outline=ON, width=3)
-
-
-def _hsv(h, s, v):
-    import colorsys
-
-    r, g, b = colorsys.hsv_to_rgb(h / 360.0, s, v)
-    return int(r * 255), int(g * 255), int(b * 255)
-
-
-def chips(draw, x, y, labels, f, w, h=22, active=0):
-    gap = 6
-    for i, lab in enumerate(labels):
-        cw = w / len(labels) - gap
-        cx = x + i * (cw + gap)
-        rr(
-            draw,
-            (cx, y, cx + cw, y + h),
-            PRIMARY if i == active else SURFACE_HIGH,
-            radius=7,
-        )
-        text(
-            draw,
-            (cx + cw / 2, y + h / 2),
-            lab,
-            f["tiny"],
-            (0, 33, 46) if i == active else ON,
-            anchor="mm",
-        )
-
-
-def slider(draw, x, y, w, value, f, label, value_text):
-    text(draw, (x, y), label, f["tiny"], ON)
-    text(draw, (x + w, y), value_text, f["tiny"], PRIMARY, anchor="ra")
-    ty = y + 20
-    draw.line((x + 6, ty, x + w - 6, ty), fill=OUTLINE, width=4)
-    draw.line((x + 6, ty, x + 6 + (w - 12) * value, ty), fill=PRIMARY, width=4)
-    px = x + 6 + (w - 12) * value
-    draw.ellipse((px - 7, ty - 7, px + 7, ty + 7), fill=PRIMARY)
-
-
-def presets(draw, x, y, r, gap=6, n=8):
-    colors = [_hsv(0, 1, 1), _hsv(28, 1, 1), _hsv(48, 1, 1), _hsv(145, 1, 1),
-              _hsv(193, 1, 1), _hsv(220, 1, 1), _hsv(277, 1, 1), (255, 255, 255)]
-    for i in range(n):
-        cx = x + r + i * (r * 2 + gap)
-        draw.ellipse((cx - r, y, cx + r, y + r * 2), fill=colors[i % len(colors)])
-
-
-# --------------------------------------------------------------------- panels
-def panel_rail(draw, ox, oy, f):
-    W, H = 800, 480
+def panel(draw, ox, oy, W, H, f, caption, wide):
     rr(draw, (ox, oy, ox + W, oy + H), PANEL_BG, radius=10)
-    status_strip(draw, ox, oy + 10, W, 34, f, "已连接  3F:2A:9C:11:04:8E")
-    rail(draw, ox, oy + 44, 88, H - 44, f, ["色彩", "模式", "设备", "关于"], active=0)
-    cx0 = ox + 88
-    cw = W - 88
-    text(draw, (cx0 + 14, oy + 58), "色彩", f["label"], ON)
-    text(draw, (cx0 + 14, oy + 78), "分区", f["tiny"], MUTED)
-    chips(draw, cx0 + 14, oy + 96, ["分区1", "分区2", "全区"], f, cw / 2 - 30, active=2)
-
-    wheel(draw, cx0 + cw * 0.26, oy + 250, 130)
-
-    rx = cx0 + cw * 0.52
-    rw = cw * 0.44
-    text(draw, (rx, oy + 100), "预设色", f["tiny"], MUTED)
-    presets(draw, rx, oy + 118, 15)
-    slider(draw, rx, oy + 172, rw, 0.64, f, "亮度", "64")
-    text(draw, (rx, oy + 220), "开关", f["tiny"], MUTED)
-    chips(draw, rx, oy + 238, ["开启", "关闭", "跟随"], f, rw, active=0)
-    text(draw, (rx, oy + 296), "速度 / 灯珠等见「模式」页", f["tiny"], MUTED)
-    text(draw, (ox + 12, oy + H - 16), "800×480 @ mdpi → 800×480dp → Rail", f["tiny"], ACCENT)
+    top = oy + 10
+    tabs(draw, ox, top, W, 58, f)
+    status(draw, ox, top + 58, W, 40, f)
+    control_h = 116 if wide else 168
+    grid_top = top + 98
+    grid_h = H - 98 - control_h
+    cols = 8 if wide else 4
+    swatch_grid(draw, ox, grid_top, W, grid_h, cols, 10 if wide else 8, 10, f,
+                selected=2)
+    control_bar(draw, ox, oy + H - control_h, W, control_h, f, stacked=not wide)
+    text(draw, (ox + 12, oy + H + 6), caption, f["tiny"], (255, 193, 7))
 
 
-def panel_top_tabs(draw, ox, oy, f):
-    W, H = 533, 320
-    rr(draw, (ox, oy, ox + W, oy + H), PANEL_BG, radius=10)
-    status_strip(draw, ox, oy + 10, W, 26, f, "已连接  3F:2A:9C:11:04:8E")
-    tab_row(draw, ox, oy + 36, W, 34, f, ["色彩", "模式", "设备", "关于"], active=0)
-
-    top = oy + 74
-    # single scrollable column: wheel capped by width, then controls
-    wheel(draw, ox + W / 2, top + 88, 82)
-    chips(draw, ox + 14, top + 180, ["分区1", "分区2", "全区"], f, W - 28, active=2)
-    slider(draw, ox + 14, top + 210, W - 28, 0.64, f, "亮度", "64")
-    text(draw, (ox + 12, oy + H - 12), "800×480 @ hdpi → 533×320dp → TopTabs（内容可滚动）", f["tiny"], ACCENT)
-
-
-def panel_phone(draw, ox, oy, f):
-    W, H = 360, 800
-    rr(draw, (ox, oy, ox + W, oy + H), PANEL_BG, radius=18)
-    status_strip(draw, ox, oy + 12, W, 36, f, "已连接  3F:2A:9C:11:04:8E")
-
-    top = oy + 60
-    wheel(draw, ox + W / 2, top + 150, 138)
-    y = top + 300
-    text(draw, (ox + 16, y), "分区", f["tiny"], MUTED)
-    chips(draw, ox + 16, y + 18, ["分区1", "分区2", "全区"], f, W - 32, active=2)
-    y += 62
-    text(draw, (ox + 16, y), "预设色", f["tiny"], MUTED)
-    presets(draw, ox + 16, y + 18, 13, gap=4)
-    y += 62
-    slider(draw, ox + 16, y, W - 32, 0.64, f, "亮度", "64")
-    y += 48
-    text(draw, (ox + 16, y), "开关", f["tiny"], MUTED)
-    chips(draw, ox + 16, y + 18, ["开启", "关闭", "跟随"], f, W - 32, active=0)
-
-    bottom_bar(draw, ox + 2, oy + H - 62, W - 4, 60, f, ["色彩", "模式", "设备", "关于"], active=0)
-    text(draw, (ox + 12, oy + H - 74), "360×800dp → BottomNav", f["tiny"], ACCENT)
-
-
-# ----------------------------------------------------------------------- main
 def main():
     f = {
         "title": load_font(26),
-        "label": load_font(17),
+        "tab": load_font(17),
+        "label": load_font(15),
         "small": load_font(12),
-        "tiny": load_font(10),
+        "tiny": load_font(11),
     }
 
-    pad = 36
-    gap = 34
-    widths = [800, 533, 360]
-    height = 800
-    total_w = pad * 2 + sum(widths) + gap * 2
-    total_h = 74 + height + 40
+    pad, gap = 36, 40
+    w1, h1 = 800, 480
+    w2, h2 = 360, 800
+    total_w = pad * 2 + w1 + gap + w2
+    total_h = 74 + max(h1, h2) + 44
 
     img = Image.new("RGB", (total_w, total_h), BG)
     d = ImageDraw.Draw(img)
 
-    text(d, (pad, 24), "氛围灯 v2 —— 三套自适应布局（按可用宽高运行时切换）", f["title"], ON)
-    text(d, (pad, 56), "示意图，非真机截图；用于评审 800×480 车载屏与手机上的布局密度", f["tiny"], MUTED)
+    text(d, (pad, 22), "氛围灯 v2 —— 统一顶栏布局（车内 800×480 与手机）", f["title"], ON)
+    text(d, (pad, 54), "示意图，非真机截图：顶部菜单 + 32 色预设网格 + 底部控制条，无圆形色盘", f["tiny"], MUTED)
 
-    x = pad
-    top = 84
-    panel_rail(d, x, top, f)
-    x += widths[0] + gap
-    panel_top_tabs(d, x, top, f)
-    x += widths[1] + gap
-    panel_phone(d, x, top, f)
+    panel(d, pad, 84, w1, h1, f, "车机  800×480dp（8 列 × 4 行）", wide=True)
+    panel(d, pad + w1 + gap, 84, w2, h2, f, "手机 360×800dp（4 列 × 8 行）", wide=False)
 
-    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "layout-mockup.png")
+    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "docs", "layout-mockup.png")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     img.save(out)
     print("written", out, img.size)

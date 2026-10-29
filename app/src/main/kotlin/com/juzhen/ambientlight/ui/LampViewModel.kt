@@ -24,8 +24,8 @@ data class LampUiState(
     val hits: List<ScanHit> = emptyList(),
     val savedAddress: String? = null,
     val zone: Zone = Zone.ALL,
-    val hue: Float = 0f,
-    val saturation: Float = 1f,
+    /** Index into [PresetColors]; the colour page is preset-only by design. */
+    val presetIndex: Int = 2,
     val brightness: Int = 100,
     val power: PowerMode = PowerMode.ON,
     val speed: Int = 3,
@@ -38,7 +38,9 @@ data class LampUiState(
     val reports: List<String> = emptyList(),
     val message: String? = null,
 ) {
-    val color: Rgb get() = hsvToRgb(hue, saturation)
+    val color: Rgb
+        get() = PresetColors.getOrElse(presetIndex) { PresetColors.first() }.rgb
+
     val isReady: Boolean get() = link is LinkState.Ready
 }
 
@@ -55,7 +57,7 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
             savedAddress = store.lastAddress,
             zone = Zone.entries.getOrElse(store.zone) { Zone.ALL },
             brightness = store.brightness,
-            hue = rgbToHue(store.lastColor),
+            presetIndex = nearestPreset(store.lastColor),
         ),
     )
     val ui: StateFlow<LampUiState> = _ui.asStateFlow()
@@ -137,13 +139,10 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
         _ui.update { it.copy(zone = zone) }
     }
 
-    fun setHue(hue: Float) {
-        _ui.update { it.copy(hue = hue) }
-        pushColor()
-    }
-
-    fun setPreset(rgb: Rgb) {
-        _ui.update { it.copy(hue = rgbToHue(rgb), saturation = 1f) }
+    /** Selecting a preset both updates the UI and pushes the colour to the lamp. */
+    fun selectPreset(index: Int) {
+        val safe = index.coerceIn(0, PresetColors.lastIndex)
+        _ui.update { it.copy(presetIndex = safe) }
         pushColor()
     }
 

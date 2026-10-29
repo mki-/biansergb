@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,8 +44,10 @@ import com.juzhen.ambientlight.ui.screens.ColorScreen
 import com.juzhen.ambientlight.ui.screens.DeviceScreen
 import com.juzhen.ambientlight.ui.screens.ModeScreen
 import com.juzhen.ambientlight.ui.theme.ErrRed
+import com.juzhen.ambientlight.ui.theme.LampBg
+import com.juzhen.ambientlight.ui.theme.LampMuted
+import com.juzhen.ambientlight.ui.theme.LampPrimary
 import com.juzhen.ambientlight.ui.theme.LampSurface
-import com.juzhen.ambientlight.ui.theme.LampSurfaceHigh
 import com.juzhen.ambientlight.ui.theme.OkGreen
 import com.juzhen.ambientlight.ui.theme.WarnAmber
 
@@ -57,38 +58,14 @@ enum class LampTab(val label: String) {
     ABOUT("关于"),
 }
 
-enum class LayoutMode {
-    /** Phones: bottom navigation, roomy portrait canvas. */
-    BottomNav,
-
-    /** Short screens (car 800x480 at hdpi = 533x320dp): top tabs, no bottom bar. */
-    TopTabs,
-
-    /** Wide and tall enough (car 800x480 at mdpi, tablets): side rail + two panes. */
-    Rail,
-}
-
-/** Below this height a bottom bar would eat too much of the screen. */
-private val ShortHeight: Dp = 400.dp
-
-/** Above this width there is room for a side rail. */
+/** Above this width the preset grid gets 8 columns instead of 4. */
 private val WideWidth: Dp = 640.dp
 
 /**
- * Chooses the shell purely from the space Compose actually got.
- *
- * Real-world numbers this is designed against:
- *  - 800x480 @ mdpi  -> 800x480 dp  -> Rail
- *  - 800x480 @ hdpi  -> 533x320 dp  -> TopTabs (height is the binding constraint)
- *  - phone portrait  -> 360x800 dp  -> BottomNav
- *  - phone landscape -> 800x360 dp  -> TopTabs
+ * One shell for every device: a tab bar pinned to the top, a thin status line, then
+ * content. There is no side rail and no bottom bar — on an 800x480 dashboard the
+ * vertical space is the scarce resource, and a top menu is what the car UI needs.
  */
-fun layoutModeFor(width: Dp, height: Dp): LayoutMode = when {
-    height < ShortHeight -> LayoutMode.TopTabs
-    width >= WideWidth -> LayoutMode.Rail
-    else -> LayoutMode.BottomNav
-}
-
 @Composable
 fun AmbientLampApp(vm: LampViewModel) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -114,47 +91,25 @@ fun AmbientLampApp(vm: LampViewModel) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        val mode = layoutModeFor(maxWidth, maxHeight)
-        val short = maxHeight < ShortHeight
-        val wide = mode != LayoutMode.BottomNav
-        val select: (LampTab) -> Unit = { tabName = it.name }
-
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbar) },
-            bottomBar = {
-                if (mode == LayoutMode.BottomNav) {
-                    BottomBar(tab, select)
-                }
-            },
-        ) { padding ->
-            Row(
+        val wide = maxWidth >= WideWidth
+        Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+            Column(
                 Modifier
                     .fillMaxSize()
                     .padding(padding),
             ) {
-                if (mode == LayoutMode.Rail) {
-                    SideRail(tab, select)
-                }
-                Column(
+                TopTabs(tab) { tabName = it.name }
+                StatusRow(ui, vm)
+                Box(
                     Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
+                        .fillMaxWidth(),
                 ) {
-                    StatusStrip(ui, vm, compact = short)
-                    if (mode == LayoutMode.TopTabs) {
-                        TabStrip(tab, select, vertical = false)
-                    }
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    ) {
-                        when (tab) {
-                            LampTab.COLOR -> ColorScreen(ui, vm, wide = wide)
-                            LampTab.MODE -> ModeScreen(ui, vm, wide = wide, short = short)
-                            LampTab.DEVICE -> DeviceScreen(ui, vm, wide = wide)
-                            LampTab.ABOUT -> AboutScreen()
-                        }
+                    when (tab) {
+                        LampTab.COLOR -> ColorScreen(ui, vm, wide = wide)
+                        LampTab.MODE -> ModeScreen(ui, vm, wide = wide)
+                        LampTab.DEVICE -> DeviceScreen(ui, vm, wide = wide)
+                        LampTab.ABOUT -> AboutScreen()
                     }
                 }
             }
@@ -162,30 +117,58 @@ fun AmbientLampApp(vm: LampViewModel) {
     }
 }
 
-// ------------------------------------------------------------------ status bar
 @Composable
-private fun StatusStrip(ui: LampUiState, vm: LampViewModel, compact: Boolean) {
-    val (text, color) = when (val link = ui.link) {
-        is LinkState.Ready -> "已连接  ${link.address}" to OkGreen
-        is LinkState.Connecting -> "连接中 第 ${link.attempt} 次…" to WarnAmber
-        is LinkState.Handshaking -> "握手中…" to WarnAmber
-        is LinkState.Backoff -> "等待重连 ${link.retryInMs / 1000}s" to WarnAmber
-        is LinkState.Scanning -> "正在搜索…" to MaterialTheme.colorScheme.primary
-        is LinkState.Failed -> "失败：${link.reason}" to ErrRed
-        LinkState.Idle -> "未连接" to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val height = if (compact) 34.dp else 44.dp
+private fun TopTabs(selected: LampTab, onSelect: (LampTab) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(height)
+            .height(58.dp)
             .background(LampSurface)
+            .padding(horizontal = 8.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LampTab.entries.forEach { tab ->
+            val active = tab == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(
+                        if (active) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        RoundedCornerShape(12.dp),
+                    )
+                    .clickable { onSelect(tab) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = tab.label,
+                    color = if (active) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusRow(ui: LampUiState, vm: LampViewModel) {
+    val (text, color) = statusOf(ui.link)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(LampBg)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(if (compact) 8.dp else 10.dp)
+                .size(10.dp)
                 .background(color, CircleShape),
         )
         Spacer(Modifier.width(8.dp))
@@ -197,103 +180,24 @@ private fun StatusStrip(ui: LampUiState, vm: LampViewModel, compact: Boolean) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        if (ui.isReady) {
-            TextButton(onClick = vm::disconnect) { Text("断开") }
-        } else {
-            TextButton(onClick = vm::autoConnectLast, enabled = ui.savedAddress != null) {
-                Text("重连")
-            }
-        }
-    }
-}
-
-// ----------------------------------------------------------------- tab strips
-@Composable
-private fun TabStrip(
-    selected: LampTab,
-    onSelect: (LampTab) -> Unit,
-    vertical: Boolean,
-) {
-    if (vertical) {
-        Column(
-            Modifier
-                .width(88.dp)
-                .fillMaxHeight()
-                .background(LampSurface)
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        TextButton(
+            onClick = if (ui.isReady) vm::disconnect else vm::autoConnectLast,
+            enabled = ui.isReady || ui.savedAddress != null,
         ) {
-            LampTab.entries.forEach { tab ->
-                TabItem(tab, tab == selected, vertical = true) { onSelect(tab) }
-            }
-        }
-    } else {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(LampSurface)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            LampTab.entries.forEach { tab ->
-                TabItem(tab, tab == selected, vertical = false, modifier = Modifier.weight(1f)) {
-                    onSelect(tab)
-                }
-            }
+            Text(
+                text = if (ui.isReady) "断开" else "重连",
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
     }
 }
 
-@Composable
-private fun TabItem(
-    tab: LampTab,
-    selected: Boolean,
-    vertical: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier
-            .then(if (vertical) Modifier.fillMaxWidth().height(52.dp) else Modifier.height(44.dp))
-            .background(bg, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = tab.label,
-            color = fg,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun BottomBar(selected: LampTab, onSelect: (LampTab) -> Unit) {
-    Surface(color = LampSurface, tonalElevation = 0.dp) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LampTab.entries.forEach { tab ->
-                TabItem(tab, tab == selected, vertical = false, modifier = Modifier.weight(1f)) {
-                    onSelect(tab)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SideRail(selected: LampTab, onSelect: (LampTab) -> Unit) {
-    Box(Modifier.background(LampSurfaceHigh)) {
-        TabStrip(selected, onSelect, vertical = true)
-    }
+private fun statusOf(link: LinkState): Pair<String, Color> = when (link) {
+    is LinkState.Ready -> "已连接  ${link.address}" to OkGreen
+    is LinkState.Connecting -> "连接中 第 ${link.attempt} 次…" to WarnAmber
+    is LinkState.Handshaking -> "握手中…" to WarnAmber
+    is LinkState.Backoff -> "等待重连 ${link.retryInMs / 1000}s" to WarnAmber
+    is LinkState.Scanning -> "正在搜索…" to LampPrimary
+    is LinkState.Failed -> "失败：${link.reason}" to ErrRed
+    LinkState.Idle -> "未连接" to LampMuted
 }

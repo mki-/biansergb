@@ -91,7 +91,7 @@ fun BigSlider(
             enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 40.dp),
+                .heightIn(min = 44.dp),
         )
     }
 }
@@ -107,7 +107,7 @@ fun ToggleRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp),
+            .heightIn(min = 56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -161,10 +161,10 @@ fun Chip(
     }
     Box(
         modifier
-            .heightIn(min = 44.dp)
+            .heightIn(min = 48.dp)
             .background(bg, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(text = label, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1)

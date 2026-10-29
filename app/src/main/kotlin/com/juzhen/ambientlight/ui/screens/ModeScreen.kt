@@ -29,7 +29,7 @@ private val FlowFamilies = listOf("七彩", "幻彩", "魔幻", "律动", "跟�
 private val FlowSteps = listOf(1, 2, 3, 4, 5, 6)
 
 @Composable
-fun ModeScreen(ui: LampUiState, vm: LampViewModel, wide: Boolean, short: Boolean) {
+fun ModeScreen(ui: LampUiState, vm: LampViewModel, wide: Boolean) {
     if (wide) {
         Row(
             Modifier
@@ -75,7 +75,7 @@ fun ModeScreen(ui: LampUiState, vm: LampViewModel, wide: Boolean, short: Boolean
             FlowPicker(ui, vm)
             Divider(Modifier.padding(vertical = 6.dp))
             Extras(vm)
-            if (short) Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
