@@ -13,6 +13,9 @@ import com.juzhen.ambientlight.ble.LampBleClient
 import com.juzhen.ambientlight.ble.LinkState
 import com.juzhen.ambientlight.ble.ScanHit
 import com.juzhen.ambientlight.data.DeviceStore
+import com.juzhen.ambientlight.widget.PinnedLamp
+import com.juzhen.ambientlight.widget.WidgetState
+import com.juzhen.ambientlight.widget.WidgetUpdater
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,9 +55,14 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
     /** True once the first full state dump of the current connection was adopted. */
     private var stateSynced = false
 
+    /** Action requested by a desktop card while the link was still down. */
+    private var pendingWidgetColor: Int? = null
+    private var pendingWidgetPower: Boolean? = null
+
     private val _ui = MutableStateFlow(
         LampUiState(
-            savedAddress = store.lastAddress,
+            // Desktop cards and the "重连" button both default to the paired lamp.
+            savedAddress = store.lastAddress ?: PinnedLamp.mac,
             zone = Zone.entries.getOrElse(store.zone) { Zone.ALL },
             brightness = store.brightness,
             presetIndex = nearestPreset(store.lastColor),
@@ -70,6 +78,8 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
                     // handshake: identify the device, then ask for a full state dump
                     ble.sendRaw(KEY_INFO, LampCommand.info())
                     ble.sendRaw(KEY_STATE, LampCommand.status())
+                    // a card tap that woke the app up gets applied once we are connected
+                    applyPendingWidgetAction()
                 } else {
                     stateSynced = false
                 }
@@ -99,6 +109,7 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
                             brightness = if (adoptBrightness) state.brightness1 else it.brightness,
                         )
                     }
+                    syncWidgetPowerState(state.power)
                 } else {
                     val text = AsciiReport.decode(frame)
                     if (isPrintableReport(text)) {
@@ -123,9 +134,51 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun autoConnectLast() {
-        val address = store.lastAddress ?: return
+        val address = store.lastAddress ?: PinnedLamp.mac
         if (_ui.value.isReady) return
         ble.connect(address)
+    }
+
+    /**
+     * Entry point for every desktop-card tap.
+     *
+     * The card only says what to do. The app connects to [PinnedLamp.mac] first and
+     * remembers the request, then applies it as soon as the link reports `Ready` —
+     * a cold start from the launcher therefore ends with the lamp already changed.
+     */
+    fun onWidgetAction(colorIndex: Int?, powerOn: Boolean?) {
+        pendingWidgetColor = colorIndex
+        pendingWidgetPower = powerOn
+
+        if (_ui.value.isReady) {
+            applyPendingWidgetAction()
+            return
+        }
+
+        val address = PinnedLamp.mac
+        store.lastAddress = address
+        _ui.update { it.copy(savedAddress = address) }
+        ble.connect(address)
+    }
+
+    private fun applyPendingWidgetAction() {
+        val color = pendingWidgetColor
+        val power = pendingWidgetPower
+        if (color == null && power == null) return
+
+        pendingWidgetColor = null
+        pendingWidgetPower = null
+
+        if (color != null) selectPreset(color)
+        if (power != null) setPower(if (power) PowerMode.ON else PowerMode.OFF)
+    }
+
+    /** Keeps the card's toggle label in sync without it touching BLE itself. */
+    private fun syncWidgetPowerState(on: Boolean) {
+        val context = getApplication<Application>()
+        if (WidgetState.isPowerOn(context) == on) return
+        WidgetState.setPowerOn(context, on)
+        WidgetUpdater.refreshAll(context)
     }
 
     fun disconnect() {
@@ -155,6 +208,7 @@ class LampViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setPower(mode: PowerMode) = send(KEY_POWER, LampCommand.power(mode)) {
         _ui.update { it.copy(power = mode) }
+        syncWidgetPowerState(mode == PowerMode.ON)
     }
 
     fun setSpeed(value: Int) = send(KEY_SPEED, LampCommand.speed(value.coerceIn(0, LampCommand.SPEED_MAX))) {

@@ -8,6 +8,9 @@ val appId: String = providers.gradleProperty("ambient.applicationId").get()
 val appVersionCode: Int = providers.gradleProperty("ambient.versionCode").get().toInt()
 val appVersionName: String = providers.gradleProperty("ambient.versionName").get()
 
+/** Lamp the desktop cards pair with; empty means the in-code default is used. */
+val pinnedMac: String = providers.gradleProperty("ambient.pinnedMac").getOrElse("")
+
 android {
     namespace = "com.juzhen.ambientlight"
     compileSdk = 35
@@ -22,6 +25,7 @@ android {
         // The app ships no native code and no density-specific resources: every
         // dimension is expressed in dp and laid out adaptively at runtime, so the
         // same APK covers an 800x480 car head unit and a modern phone.
+        buildConfigField("String", "PINNED_MAC", "\"$pinnedMac\"")
     }
 
     buildFeatures {

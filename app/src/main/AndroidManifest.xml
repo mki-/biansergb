@@ -59,6 +59,59 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Desktop cards (app widgets). Four sizes, each its own provider so the
+          launcher lists them separately. exported=false: APPWIDGET_UPDATE is a
+          protected system broadcast, so the system can still deliver it.
+        -->
+        <receiver
+            android:name=".widget.SmallLampWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_small_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WideLampWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_wide_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_wide_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.SquareLampWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_square_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_square_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.BigLampWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_big_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_big_info" />
+        </receiver>
+
     </application>
 
 </manifest>

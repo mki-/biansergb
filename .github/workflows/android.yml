@@ -45,6 +45,11 @@ jobs:
       - name: Verify protocol vectors (Python)
         run: python3 tools/verify_protocol.py
 
+      # Widget layouts are hand-written XML, so validate every resource reference
+      # (R.id / @drawable / @string / @layout) before spending time on Gradle.
+      - name: Verify resource references (Python)
+        run: python3 tools/check_resources.py
+
       - name: Protocol unit tests
         run: gradle :protocol:test --no-daemon --stacktrace
 

@@ -1,4 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">氛围灯</string>
+
+    <!-- Desktop card (app widget) -->
+    <string name="widget_title">氛围灯</string>
+    <string name="widget_state_connect">点按连接</string>
+    <string name="widget_state_on">已开灯</string>
+    <string name="widget_state_off">已关灯</string>
+    <string name="widget_on">开</string>
+    <string name="widget_off">关</string>
+    <string name="widget_open">打开</string>
+
+    <string name="widget_color_white">白光</string>
+    <string name="widget_color_pink">粉色</string>
+    <string name="widget_color_red">红色</string>
+    <string name="widget_color_purple">紫色</string>
+    <string name="widget_color_blue">蓝色</string>
+    <string name="widget_color_cyan">青色</string>
+
+    <string name="widget_small_label">氛围灯 · 开关（2×1）</string>
+    <string name="widget_wide_label">氛围灯 · 开关 + 六色（4×1）</string>
+    <string name="widget_square_label">氛围灯 · 六色方卡（2×2）</string>
+    <string name="widget_big_label">氛围灯 · 完整卡片（4×2）</string>
+
+    <string name="widget_small_desc">只放一个开关，占 2×1。</string>
+    <string name="widget_wide_desc">一行放下开关和六个颜色按钮，占 4×1。</string>
+    <string name="widget_square_desc">开关加 3×2 颜色网格，占 2×2。</string>
+    <string name="widget_big_desc">标题、开关、六个大色块和打开按钮，占 4×2。</string>
 </resources>

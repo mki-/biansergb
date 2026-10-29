@@ -71,6 +71,31 @@
 
 ---
 
+## 桌面卡片（App Widget）
+
+四种尺寸，都带开关和六个颜色按钮；**任意点击都会自动连接 `FF:FF:10:98:3C:D9`**。
+
+![桌面卡片](docs/widget-mockup.png)
+
+| 卡片 | 占用 | 内容 |
+|---|---|---|
+| 2×1 | 110×40 dp | 开关 + 状态 |
+| 4×1 | 250×40 dp | 开关 + 六色（一行） |
+| 2×2 | 110×110 dp | 开关 + 3×2 色块 |
+| 4×2 | 250×110 dp | 开关 + 六个大色块 + 打开按钮 |
+
+点击行为：卡片空白 → 打开 App；开关 → 开/关灯；色块 → 切到该颜色。
+App 未连接时先记下动作，连上 `PinnedLamp.mac` 并进入 `Ready` 后**自动补齐**，
+所以冷启动点一下就能生效，不用先手动连接。
+
+- 用 **RemoteViews + shape drawable**（不引入 Glance）：渐变直接写 XML，零新依赖
+- 用 **PendingIntent 直达 Activity**（不上前台服务）：权限面最小，BLE 连接仍只有一个所有者
+- 蓝牙地址在 `gradle.properties` 的 `ambient.pinnedMac`，六个颜色在 `widget/WidgetCore.kt`
+
+实现细节、取舍与自测清单见 [`docs/widgets.md`](docs/widgets.md)。
+
+---
+
 ## 视觉风格：现代渐变风（Modern Gradient）
 
 界面遵循 `modern-gradient` 规范，并已逐条映射到 Compose：
@@ -113,6 +138,7 @@
 └── docs/
     ├── protocol.md                 # 协议规范（帧格式/校验和/12 条命令/状态帧）
     ├── screen-adaptation.md        # 屏幕适配说明
+    ├── widgets.md                  # 桌面卡片（4 尺寸 / 六色 / 自动连接）
     └── style-modern-gradient.md    # 视觉风格：Tailwind → Compose 映射与取舍
 ```
 
