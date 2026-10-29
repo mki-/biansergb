@@ -149,7 +149,55 @@ def main() -> int:
             elif name not in packages[pkg]:
                 problems.append(f'{rel}: imported `{name}` not declared in {pkg}')
 
-    # ---- pass 3: report
+    # ---- pass 3: types that some file imports but this file forgot to import
+    # Catches the classic "forgot import androidx.compose.foundation.layout.Box" bug,
+    # which pass 1 (brackets) and pass 2 (com.juzhen imports) both miss.
+    # Strategy: only consider names that appear as an `import` somewhere in the repo,
+    # which keeps kotlin-default imports (ArrayList, Charsets, …) and enum entries out.
+    api_names: set[str] = set()
+    imports_by_file: dict[str, set[str]] = {}
+    for path in files:
+        text = open(path, encoding='utf-8').read()
+        names = set()
+        for imp in re.findall(r'^import\s+([\w.*]+)', text, re.MULTILINE):
+            if imp.endswith('.*'):
+                continue
+            names.add(imp.rpartition('.')[2])
+        imports_by_file[path] = names
+        api_names |= names
+
+    ident_re = re.compile(r'(?<![.\w])[A-Z][A-Za-z0-9_]*')
+    for path in files:
+        rel = os.path.relpath(path, ROOT)
+        text = open(path, encoding='utf-8').read()
+        code = strip_code(text)
+        imported = imports_by_file[path]
+
+        declared_here = set(
+            re.findall(r'\b(?:class|interface|object|typealias)\s+([A-Za-z_]\w*)', text)
+        )
+        declared_here |= set(re.findall(r'\b(?:const\s+)?va[lr]\s+([A-Za-z_]\w*)', text))
+        declared_here |= set(
+            re.findall(r'\bfun\s+(?:<[^>]*>\s*)?(?:[\w.]+\.)?([A-Za-z_]\w*)\s*[<(]', text)
+        )
+        for em in re.finditer(r'enum\s+class\s+\w+[^{]*\{([^}]*)', text):
+            for tok in re.split(r'[,\n]', em.group(1)):
+                mm = re.match(r'\s*([A-Z][A-Za-z0-9_]*)', tok)
+                if mm:
+                    declared_here.add(mm.group(1))
+
+        m = re.search(r'^package\s+([\w.]+)', text, re.MULTILINE)
+        pkg = m.group(1) if m else ''
+        same_pkg = packages.get(pkg, set())
+
+        for ident in sorted(set(ident_re.findall(code))):
+            if ident not in api_names or ident in imported:
+                continue
+            if ident in declared_here or ident in same_pkg:
+                continue
+            problems.append(f'{rel}: `{ident}` used but not imported/declared')
+
+    # ---- pass 4: report
     print(f'kotlin files scanned: {len(files)}')
     print(f'packages: {len(packages)}')
     if problems:
@@ -159,7 +207,6 @@ def main() -> int:
         return 1
     print('\nOK: brackets balanced, all com.juzhen.* imports resolve')
     return 0
-
 
 if __name__ == '__main__':
     sys.exit(main())
