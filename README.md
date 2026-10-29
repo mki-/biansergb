@@ -71,6 +71,27 @@
 
 ---
 
+## 视觉风格：现代渐变风（Modern Gradient）
+
+界面遵循 `modern-gradient` 规范，并已逐条映射到 Compose：
+
+| 规范 | 实现 |
+|---|---|
+| `bg-slate-950` / `#1e1b4b` 深色底 | 页面用 `#1e1b4b → slate-950` 纵向渐变，**主区域无纯色背景** |
+| `blur-3xl opacity-30` 光晕 | `GlowBackground` 用 3 个 `radialGradient` 圆（violet / fuchsia / cyan） |
+| `backdrop-blur-xl bg-white/10 border-white/20` | `GlassCard`：白色 16%→6% 半透明渐变 + 白色 20% 描边 |
+| `from-violet-600 to-fuchsia-600` 主渐变 | `LampGradients.violetFuchsia` — 主按钮、选中胶囊、当前 tab |
+| `shadow-2xl shadow-violet-500/40` | `Modifier.shadow(ambientColor = Violet500, spotColor = Fuchsia500)` |
+| `bg-clip-text text-transparent` | `TextStyle(brush = ...)`，用于 About 标题与分组标题（克制使用） |
+| `hover:bg-right` 渐变位移 | 按下时叠加移动高光带（`Gradient Flow`） |
+| `active:scale-95` / `rounded-2xl~3xl` | `animateFloatAsState` 缩放；圆角 16 / 24 dp，**无直角** |
+| `prefers-reduced-motion` | `reducedMotion()` 读 `ValueAnimator.areAnimatorsEnabled()`，关闭动画时改用 `snap()` |
+
+`backdrop-blur` 与 `blur-3xl` 在 Compose 里没有等价物，替代方案与取舍见
+[`docs/style-modern-gradient.md`](docs/style-modern-gradient.md)。
+
+---
+
 ## 目录结构
 
 ```
@@ -91,7 +112,8 @@
 │   └── push-to-github.ps1          # 一键推送脚本
 └── docs/
     ├── protocol.md                 # 协议规范（帧格式/校验和/12 条命令/状态帧）
-    └── screen-adaptation.md        # 屏幕适配说明
+    ├── screen-adaptation.md        # 屏幕适配说明
+    └── style-modern-gradient.md    # 视觉风格：Tailwind → Compose 映射与取舍
 ```
 
 `protocol` 不依赖 Android，所以 `gradle :protocol:test` 能在任何 JDK 17 上秒跑。
@@ -182,9 +204,9 @@ gradle wrapper --gradle-version 8.9
 
 ## 界面预览
 
-![统一顶栏布局：车机 800×480 与手机](docs/layout-mockup.png)
+![现代渐变风：车机 800×480 与手机](docs/layout-mockup.png)
 
-（示意图由 `tools/render_layout_mockup.py` 生成，用于评审布局密度，不是真机截图。）
+（示意图由 `tools/render_layout_mockup.py` 生成，用于评审布局密度与风格一致性，不是真机截图。）
 
 ---
 

@@ -1,7 +1,6 @@
 package com.juzhen.ambientlight.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,44 +13,52 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.juzhen.ambientlight.ui.theme.LampSurfaceHigh
+import com.juzhen.ambientlight.ui.theme.Fuchsia500
+import com.juzhen.ambientlight.ui.theme.LampGradients
+import com.juzhen.ambientlight.ui.theme.Slate900
+import com.juzhen.ambientlight.ui.theme.Violet500
 
+/** Section label — white/60, never uppercase-tracked eyebrow text. */
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = Color.White.copy(alpha = 0.60f),
         modifier = modifier,
     )
 }
 
+/** Hairline separator: white/10 instead of a grey line. */
 @Composable
 fun Divider(modifier: Modifier = Modifier) {
     Box(
         modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(LampSurfaceHigh),
+            .background(Color.White.copy(alpha = 0.10f)),
     )
 }
 
 /**
  * Label + value on one line, slider underneath.
  *
- * Sized for a moving vehicle: the row is at least 52dp tall and the slider gets the
- * full width instead of being squeezed next to its label.
+ * Sized for a moving vehicle: the row is at least 56dp tall and the slider gets the
+ * full width instead of being squeezed next to its label. Track/thumb use the brand
+ * gradient's solid anchors (a slider thumb cannot take a brush).
  */
 @Composable
 fun BigSlider(
@@ -73,6 +80,7 @@ fun BigSlider(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.80f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -80,7 +88,7 @@ fun BigSlider(
             Text(
                 text = valueText,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = Violet500,
             )
         }
         Slider(
@@ -89,6 +97,13 @@ fun BigSlider(
             valueRange = valueRange,
             steps = steps,
             enabled = enabled,
+            colors = SliderDefaults.colors(
+                thumbColor = Fuchsia500,
+                activeTrackColor = Violet500,
+                inactiveTrackColor = Color.White.copy(alpha = 0.16f),
+                activeTickColor = Color.White.copy(alpha = 0.40f),
+                inactiveTickColor = Color.White.copy(alpha = 0.20f),
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 44.dp),
@@ -113,15 +128,28 @@ fun ToggleRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.80f),
             modifier = Modifier.weight(1f),
         )
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Violet500,
+                checkedBorderColor = Color.White.copy(alpha = 0.30f),
+                uncheckedThumbColor = Color.White.copy(alpha = 0.80f),
+                uncheckedTrackColor = Color.White.copy(alpha = 0.10f),
+                uncheckedBorderColor = Color.White.copy(alpha = 0.24f),
+            ),
+        )
     }
 }
 
 /**
- * Single-select chip row. Scrolls horizontally so a 533dp-wide car screen never
- * breaks the layout, while phones simply show everything at once.
+ * Single-select chip row. Scrolls horizontally so a narrow screen never breaks the
+ * layout, while an 800dp car screen simply shows everything at once.
  */
 @Composable
 fun ChipSelector(
@@ -146,29 +174,27 @@ fun ChipSelector(
     }
 }
 
+/**
+ * Selectable pill. Glass when idle, brand gradient when selected — the single
+ * component every screen uses for zone / power / mode choices.
+ */
 @Composable
 fun Chip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    gradient: Brush = LampGradients.violetFuchsia,
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary else LampSurfaceHigh
-    val fg = if (selected) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-    Box(
-        modifier
-            .heightIn(min = 48.dp)
-            .background(bg, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = label, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-    }
+    PillChip(
+        label = label,
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        gradient = gradient,
+    )
 }
 
 @Composable
@@ -189,20 +215,31 @@ fun StatRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = 30.dp),
+            .heightIn(min = 32.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color.White.copy(alpha = 0.60f),
             modifier = Modifier.weight(1f),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+/** Unused-but-exported helper kept for the About screen's gradient accents. */
+@Composable
+fun BrandAccentDot(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(10.dp)
+            .background(Slate900, CircleShape),
+    )
 }

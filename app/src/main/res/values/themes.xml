@@ -2,13 +2,13 @@
 <resources>
     <!--
       Platform theme only (no AppCompat / Material Views dependency — the UI is
-      100% Compose). No action bar, dark background to avoid a white flash on
-      car head units that boot straight into the launcher.
+      100% Compose). The window background matches the top of the app's gradient so
+      there is no flash of a different colour during launch.
     -->
     <style name="Theme.AmbientLamp" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#FF0E0F14</item>
-        <item name="android:colorBackground">#FF0E0F14</item>
-        <item name="android:statusBarColor">#FF0E0F14</item>
-        <item name="android:navigationBarColor">#FF0E0F14</item>
+        <item name="android:windowBackground">#FF1E1B4B</item>
+        <item name="android:colorBackground">#FF1E1B4B</item>
+        <item name="android:statusBarColor">#FF1E1B4B</item>
+        <item name="android:navigationBarColor">#FF020617</item>
     </style>
 </resources>

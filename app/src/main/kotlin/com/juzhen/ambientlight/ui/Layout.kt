@@ -1,6 +1,7 @@
 package com.juzhen.ambientlight.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +23,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +32,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,16 +41,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.juzhen.ambientlight.ble.LinkState
+import com.juzhen.ambientlight.ui.components.GlassCard
+import com.juzhen.ambientlight.ui.components.GlowBackground
+import com.juzhen.ambientlight.ui.components.Shape2Xl
 import com.juzhen.ambientlight.ui.screens.AboutScreen
 import com.juzhen.ambientlight.ui.screens.ColorScreen
 import com.juzhen.ambientlight.ui.screens.DeviceScreen
 import com.juzhen.ambientlight.ui.screens.ModeScreen
 import com.juzhen.ambientlight.ui.theme.ErrRed
-import com.juzhen.ambientlight.ui.theme.LampBg
-import com.juzhen.ambientlight.ui.theme.LampMuted
-import com.juzhen.ambientlight.ui.theme.LampPrimary
-import com.juzhen.ambientlight.ui.theme.LampSurface
+import com.juzhen.ambientlight.ui.theme.Fuchsia500
+import com.juzhen.ambientlight.ui.theme.GlassBorder
+import com.juzhen.ambientlight.ui.theme.LampGradients
 import com.juzhen.ambientlight.ui.theme.OkGreen
+import com.juzhen.ambientlight.ui.theme.Violet500
 import com.juzhen.ambientlight.ui.theme.WarnAmber
 
 enum class LampTab(val label: String) {
@@ -62,9 +67,9 @@ enum class LampTab(val label: String) {
 private val WideWidth: Dp = 640.dp
 
 /**
- * One shell for every device: a tab bar pinned to the top, a thin status line, then
- * content. There is no side rail and no bottom bar — on an 800x480 dashboard the
- * vertical space is the scarce resource, and a top menu is what the car UI needs.
+ * One shell everywhere: glass tab bar on top, a thin status line, then content on a
+ * gradient + glow background. No side rail, no bottom bar — on an 800x480 dashboard
+ * vertical space is the scarce resource.
  */
 @Composable
 fun AmbientLampApp(vm: LampViewModel) {
@@ -74,8 +79,6 @@ fun AmbientLampApp(vm: LampViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val view = LocalView.current
 
-    // A lamp controller is usually mounted and watched; keep the panel awake while
-    // the light is actually under control.
     LaunchedEffect(ui.isReady) { view.keepScreenOn = ui.isReady }
 
     LaunchedEffect(ui.message) {
@@ -86,30 +89,27 @@ fun AmbientLampApp(vm: LampViewModel) {
         }
     }
 
-    BoxWithConstraints(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= WideWidth
-        Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            ) {
-                TopTabs(tab) { tabName = it.name }
-                StatusRow(ui, vm)
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                ) {
-                    when (tab) {
-                        LampTab.COLOR -> ColorScreen(ui, vm, wide = wide)
-                        LampTab.MODE -> ModeScreen(ui, vm, wide = wide)
-                        LampTab.DEVICE -> DeviceScreen(ui, vm, wide = wide)
-                        LampTab.ABOUT -> AboutScreen()
+        Scaffold(
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbar) },
+        ) { padding ->
+            GlowBackground(Modifier.padding(padding)) {
+                Column(Modifier.fillMaxSize()) {
+                    TopTabs(tab) { tabName = it.name }
+                    StatusRow(ui, vm)
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    ) {
+                        when (tab) {
+                            LampTab.COLOR -> ColorScreen(ui, vm, wide = wide)
+                            LampTab.MODE -> ModeScreen(ui, vm, wide = wide)
+                            LampTab.DEVICE -> DeviceScreen(ui, vm, wide = wide)
+                            LampTab.ABOUT -> AboutScreen()
+                        }
                     }
                 }
             }
@@ -117,41 +117,75 @@ fun AmbientLampApp(vm: LampViewModel) {
     }
 }
 
+/** Glass bar holding four gradient pills. */
 @Composable
 private fun TopTabs(selected: LampTab, onSelect: (LampTab) -> Unit) {
-    Row(
+    GlassCard(
         Modifier
             .fillMaxWidth()
-            .height(58.dp)
-            .background(LampSurface)
-            .padding(horizontal = 8.dp, vertical = 7.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .height(54.dp),
+        shape = Shape2Xl,
     ) {
-        LampTab.entries.forEach { tab ->
-            val active = tab == selected
-            Box(
-                Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        RoundedCornerShape(12.dp),
-                    )
-                    .clickable { onSelect(tab) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = tab.label,
-                    color = if (active) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+        Row(
+            Modifier
+                .fillMaxSize()
+                .padding(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            LampTab.entries.forEach { tab ->
+                TabPill(
+                    label = tab.label,
+                    active = tab == selected,
+                    onClick = { onSelect(tab) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TabPill(
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier
+            .then(
+                if (active) {
+                    Modifier.shadow(
+                        elevation = 12.dp,
+                        shape = shape,
+                        ambientColor = Violet500,
+                        spotColor = Fuchsia500,
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .clip(shape)
+            .then(
+                if (active) {
+                    Modifier.background(LampGradients.violetFuchsia, shape)
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = if (active) Color.White else Color.White.copy(alpha = 0.65f),
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+        )
     }
 }
 
@@ -162,14 +196,14 @@ private fun StatusRow(ui: LampUiState, vm: LampViewModel) {
         Modifier
             .fillMaxWidth()
             .height(40.dp)
-            .background(LampBg)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
                 .size(10.dp)
-                .background(color, CircleShape),
+                .background(color, CircleShape)
+                .shadow(6.dp, CircleShape, ambientColor = color, spotColor = color),
         )
         Spacer(Modifier.width(8.dp))
         Text(
@@ -180,13 +214,21 @@ private fun StatusRow(ui: LampUiState, vm: LampViewModel) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        TextButton(
-            onClick = if (ui.isReady) vm::disconnect else vm::autoConnectLast,
-            enabled = ui.isReady || ui.savedAddress != null,
+        Box(
+            Modifier
+                .clip(Shape2Xl)
+                .background(LampGradients.glassFill, Shape2Xl)
+                .border(1.dp, GlassBorder, Shape2Xl)
+                .clickable(enabled = ui.isReady || ui.savedAddress != null) {
+                    if (ui.isReady) vm.disconnect() else vm.autoConnectLast()
+                }
+                .padding(horizontal = 14.dp, vertical = 5.dp),
         ) {
             Text(
                 text = if (ui.isReady) "断开" else "重连",
-                style = MaterialTheme.typography.labelLarge,
+                color = Color.White.copy(alpha = 0.90f),
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
             )
         }
     }
@@ -197,7 +239,7 @@ private fun statusOf(link: LinkState): Pair<String, Color> = when (link) {
     is LinkState.Connecting -> "连接中 第 ${link.attempt} 次…" to WarnAmber
     is LinkState.Handshaking -> "握手中…" to WarnAmber
     is LinkState.Backoff -> "等待重连 ${link.retryInMs / 1000}s" to WarnAmber
-    is LinkState.Scanning -> "正在搜索…" to LampPrimary
+    is LinkState.Scanning -> "正在搜索…" to Violet500
     is LinkState.Failed -> "失败：${link.reason}" to ErrRed
-    LinkState.Idle -> "未连接" to LampMuted
+    LinkState.Idle -> "未连接" to Color.White.copy(alpha = 0.60f)
 }
