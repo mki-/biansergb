@@ -77,6 +77,12 @@ def strip_code(text: str) -> str:
     return ''.join(out)
 
 
+def u8(path: str) -> str:
+    """Read UTF-8 and drop a leading BOM (PowerShell/Notepad like to add one)."""
+    with open(path, encoding='utf-8') as fh:
+        return fh.read().lstrip('\ufeff')
+
+
 def main() -> int:
     packages: dict[str, set[str]] = {}
     files: dict[str, str] = {}
@@ -94,7 +100,7 @@ def main() -> int:
 
     # ---- pass 1: packages + declarations + bracket balance
     for path in files:
-        text = open(path, encoding='utf-8').read()
+        text = u8(path)
         rel = os.path.relpath(path, ROOT)
 
         m = re.search(r'^package\s+([\w.]+)', text, re.MULTILINE)
@@ -131,7 +137,7 @@ def main() -> int:
     # ---- pass 2: imports resolve
     for path in files:
         rel = os.path.relpath(path, ROOT)
-        text = open(path, encoding='utf-8').read()
+        text = u8(path)
         for imp in re.findall(r'^import\s+([\w.*]+)', text, re.MULTILINE):
             if not imp.startswith('com.juzhen.'):
                 continue
@@ -157,7 +163,7 @@ def main() -> int:
     api_names: set[str] = set()
     imports_by_file: dict[str, set[str]] = {}
     for path in files:
-        text = open(path, encoding='utf-8').read()
+        text = u8(path)
         names = set()
         for imp in re.findall(r'^import\s+([\w.*]+)', text, re.MULTILINE):
             if imp.endswith('.*'):
@@ -169,7 +175,7 @@ def main() -> int:
     ident_re = re.compile(r'(?<![.\w])[A-Z][A-Za-z0-9_]*')
     for path in files:
         rel = os.path.relpath(path, ROOT)
-        text = open(path, encoding='utf-8').read()
+        text = u8(path)
         code = strip_code(text)
         imported = imports_by_file[path]
 
@@ -197,7 +203,24 @@ def main() -> int:
                 continue
             problems.append(f'{rel}: `{ident}` used but not imported/declared')
 
-    # ---- pass 4: report
+    # ---- pass 4: duplicate type declarations in the same package
+    # (a real compile error that neither bracket balance nor import checks catch —
+    #  it happens when a file is replaced but the old one is left behind)
+    type_decls: dict[tuple[str, str], list[str]] = {}
+    for path in files:
+        text = u8(path)
+        rel = os.path.relpath(path, ROOT)
+        m = re.search(r'^package\s+([\w.]+)', text, re.MULTILINE)
+        pkg = m.group(1) if m else ''
+        code = strip_code(text)
+        for name in set(re.findall(r'\b(?:class|interface|object)\s+([A-Z][A-Za-z0-9_]*)', code)):
+            type_decls.setdefault((pkg, name), []).append(rel)
+
+    for (pkg, name), where in sorted(type_decls.items()):
+        if len(where) > 1:
+            problems.append(f'duplicate declaration `{name}` in {pkg}: {", ".join(where)}')
+
+    # ---- pass 5: report
     print(f'kotlin files scanned: {len(files)}')
     print(f'packages: {len(packages)}')
     if problems:
