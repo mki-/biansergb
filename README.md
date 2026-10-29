@@ -1,0 +1,213 @@
+# 氛围灯 · Ambient Lamp（v2 重写版）
+
+用 Kotlin + Jetpack Compose 重写的蓝牙氛围灯控制 App，**同时适配 800×480 车载横屏与普通手机**，
+按现有固件逐字节兼容（协议由静态逆向原厂 App `com.yl.milight` 得到并已交叉验证）。
+
+通过 **GitHub Actions 云端出包**：推到 GitHub 后自动跑单测并产出可安装的 APK。
+
+---
+
+## 一句话亮点
+
+| | 原厂 App | 本项目 |
+|---|---|---|
+| 屏幕适配 | 固定竖屏、单栏 | **三套布局按可用宽高自动切换**（侧栏 / 顶部标签 / 底部导航） |
+| BLE | inuker BluetoothKit（163 个类，已停更） | 原生 `BluetoothGatt`，~380 行，可控 |
+| 写策略 | 直发无队列，律动必丢包 | 串行 + 同键合并 + 节流 |
+| 断线 | 立即无限重连 | 指数退避 1→15 s 封顶 |
+| 权限 | 目标 API 29，缺 `BLUETOOTH_SCAN` | 目标 API 35，12+ / 以下两套权限 |
+| 签名 | 调试证书（无法发布） | CI 可选正式签名，无密钥也能出包 |
+| 权限滥用 | 读存储、挂载文件系统等 | 只保留 BLE 必需项 |
+| 结构 | 上帝对象 + EventBus | 纯协议模块 + ViewModel/StateFlow |
+
+---
+
+## 屏幕适配（重点）
+
+不按"手机/车机"判断，只按 **Compose 实际拿到的空间**决策：
+
+```kotlin
+fun layoutModeFor(width: Dp, height: Dp): LayoutMode = when {
+    height < 400.dp -> TopTabs    // 矮屏：顶部标签，避免底栏吃掉宝贵高度
+    width  >= 640.dp -> Rail      // 宽屏：左侧栏 + 双栏内容
+    else -> BottomNav             // 手机：底部导航
+}
+```
+
+| 实机 | 物理分辨率 | 常见 density | 折算 dp | 命中布局 |
+|---|---|---|---|---|
+| 车载屏 | 800×480 | mdpi 160dpi | 800×480 | **Rail**（侧栏 + 色盘｜控件双栏） |
+| 车载屏 | 800×480 | hdpi 240dpi | 533×320 | **TopTabs**（高度是瓶颈） |
+| 车载屏 | 800×480 | tvdpi 213dpi | 601×361 | **TopTabs** |
+| 车载屏 | 800×480 | xhdpi 320dpi | 400×240 | **TopTabs**（可滚动，仍可用） |
+| 手机 | 1080×2400 | xxhdpi 480dpi | 360×800 | **BottomNav** |
+| 手机横屏 | 2400×1080 | xxhdpi | 800×360 | **TopTabs** |
+
+其它适配手段：
+
+* 全部尺寸用 `dp`，图标为矢量，**没有任何密度专用资源** → 同一个 APK 覆盖所有屏幕。
+* 不锁 `screenOrientation`：车机就是横屏，手机可自由旋转。
+* `configChanges` 含 `orientation|screenSize|density` → 旋转/换屏**不重建 Activity**，BLE 连接不断。
+* 车载触摸目标放大：滑块独占整行、按钮最小 44–52 dp。
+* 连接后自动 `keepScreenOn`，熄屏不打断控制。
+
+细节见 [`docs/screen-adaptation.md`](docs/screen-adaptation.md)。
+
+---
+
+## 目录结构
+
+```
+.
+├── .github/workflows/android.yml   # 云端构建 + 出包 + tag 发布
+├── app/                            # UI + BLE 传输层
+│   └── src/main/kotlin/com/juzhen/ambientlight/
+│       ├── ble/                    # LampBleClient / WriteScheduler / BlePermissions
+│       ├── data/                   # DeviceStore（记住上次设备）
+│       └── ui/                     # 自适应外壳、ViewModel、三个屏幕、色盘
+├── protocol/                       # 纯 Kotlin/JVM，零 Android 依赖，可单测
+│   └── src/{main,test}/kotlin/com/juzhen/ambient/protocol/
+├── tools/                          # 协议参考实现（Python）+ 自检
+└── docs/
+    ├── protocol.md                 # 协议规范（帧格式/校验和/12 条命令/状态帧）
+    └── screen-adaptation.md        # 屏幕适配说明
+```
+
+`protocol` 不依赖 Android，所以 `gradle :protocol:test` 能在任何 JDK 17 上秒跑。
+
+---
+
+## 怎么出包（GitHub Actions）
+
+### 1. 推到 GitHub
+
+本机若无网络，可在能联网的机器上：
+
+```powershell
+cd ambient-lamp-app
+git init
+git add .
+git commit -m "feat: ambient lamp v2 (adaptive 800x480 + phone)"
+git branch -M main
+git remote add origin https://github.com/<你的账号>/ambient-lamp.git
+git push -u origin main
+```
+
+或者在本机网络恢复后运行随附脚本：
+
+```powershell
+.\tools\push-to-github.ps1 -RepoUrl https://github.com/<你的账号>/ambient-lamp.git
+```
+
+### 2. 等 CI 跑完
+
+推送后到仓库 **Actions → Android CI**：
+
+1. `python3 tools/verify_protocol.py` —— 协议向量自检（秒级）
+2. `gradle :protocol:test` —— 协议单测
+3. 产出 `app-debug.apk` 与 `app-release.apk`
+4. 结果在 **Artifacts → ambient-lamp-apk** 下载
+
+### 3. 打 tag 直接发 Release
+
+```bash
+git tag v2.0.0 && git push origin v2.0.0
+```
+
+CI 会把两个 APK 附到 GitHub Release 上。
+
+### 4.（可选）正式签名
+
+默认 **无密钥也能出包**（release 自动回退到 debug 签名，仅供测试）。要正式签名，在仓库
+**Settings → Secrets and variables → Actions** 添加：
+
+| Secret | 说明 |
+|---|---|
+| `KEYSTORE_BASE64` | keystore 文件的 base64：`base64 -w0 release.jks` |
+| `KEYSTORE_PASSWORD` | keystore 口令 |
+| `KEY_ALIAS` | key 别名 |
+| `KEY_PASSWORD` | key 口令 |
+
+> 注意：原厂 App 用的是 Android 调试证书，你手上没有它的发布密钥，
+> 所以本项目的 `applicationId` 是 `com.juzhen.ambientlight`（不是 `com.yl.milight`）。
+> 换成原包名会导致"签名不一致无法覆盖安装"。改包名请动 `gradle.properties` 的 `ambient.applicationId`。
+
+---
+
+## 本地构建
+
+需要 JDK 17 + Android SDK（`ANDROID_HOME`）。
+
+```bash
+# 首次：生成 wrapper（仓库不提交 gradle-wrapper.jar）
+gradle wrapper --gradle-version 8.9
+
+./gradlew :protocol:test
+./gradlew :app:assembleDebug
+# 产物 app/build/outputs/apk/debug/app-debug.apk
+```
+
+Windows：
+
+```powershell
+gradle wrapper --gradle-version 8.9
+.\gradlew.bat :app:assembleDebug
+```
+
+> 本仓库**刻意不提交** `gradle-wrapper.jar`（二进制）。CI 用
+> `gradle/actions/setup-gradle` 指定 Gradle 8.9 直接构建，因此没有 wrapper 也能出包。
+
+---
+
+## 桌面预览
+
+![三套自适应布局](docs/layout-mockup.png)
+
+（示意图由 `tools/render_layout_mockup.py` 生成，用于评审布局密度，不是真机截图。）
+
+---
+
+## 已实现 / 未实现
+
+**已实现**
+
+* BLE 扫描（7 s）、连接（3 次重试 / 30 s 超时）、服务发现、通知订阅
+* 双分区色彩（色盘 + 8 个预设）、双分区亮度、开关三态（开启/关闭/跟随）
+* 流水模式（5 族 × 6 档）、速度、灯珠数量、声音灵敏度、方向、转向跟随
+* 设备状态实时回读（双区亮度/模式/RGB、开关、麦克风电平）
+* 内置模式快捷键、RF 遥控配对、设备信息文本上报
+* 记住上次设备、断线指数退避重连
+
+**未实现（原厂有，需另行开发）**
+
+* 音乐律动（FFT/节拍）——需要手机麦克风算法，原厂实现未逆向
+* 定时开关——建议用 `AlarmManager.setExactAndAllowWhileIdle`
+* 摇一摇换色——原厂走一套未完全解码的 `0x7E…0xEF` 旧协议，建议改为"随机取色 + `0x04`"
+* 说明书 PDF 阅读
+
+---
+
+## 协议
+
+完整规范见 [`docs/protocol.md`](docs/protocol.md)。速记：
+
+```
+帧： 55 | L | CMD | PAYLOAD(L-1) | CK | AA
+      CK = (~(L + CMD + ΣPAYLOAD)) & 0xFF
+
+GATT：Service FFB0 / Write FFB1 (NoResponse) / Notify FFB2 / CCCD 2902
+
+开灯        55 02 05 02 F6 AA
+关灯        55 02 05 00 F8 AA
+亮度100/100 55 03 02 64 64 32 AA
+红(仅区1)   55 07 04 FF 00 00 00 00 00 F5 AA
+速度3       55 02 23 03 D7 AA
+灯珠150     55 02 26 96 41 AA
+```
+
+---
+
+## 说明
+
+* 本项目通过静态逆向自有设备配套 App 还原协议后重写，固件无需改动，可与原厂 App 分时使用同一台设备。
+* 仅供自有设备配套使用。

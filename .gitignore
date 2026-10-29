@@ -1,0 +1,34 @@
+# Android / Gradle
+.gradle/
+build/
+app/build/
+protocol/build/
+local.properties
+*.iml
+.idea/
+captures/
+.cxx/
+.externalNativeBuild/
+*.hprof
+
+# Build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+out/
+
+# Signing material — never commit these
+*.jks
+*.keystore
+keystore.properties
+release.keystore
+
+# Python
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini

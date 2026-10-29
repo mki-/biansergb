@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Platform theme only (no AppCompat / Material Views dependency — the UI is
+      100% Compose). No action bar, dark background to avoid a white flash on
+      car head units that boot straight into the launcher.
+    -->
+    <style name="Theme.AmbientLamp" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF0E0F14</item>
+        <item name="android:colorBackground">#FF0E0F14</item>
+        <item name="android:statusBarColor">#FF0E0F14</item>
+        <item name="android:navigationBarColor">#FF0E0F14</item>
+    </style>
+</resources>

@@ -1,0 +1,14 @@
+# Normalise line endings: the repo is built on Linux CI, authored on Windows.
+* text=auto eol=lf
+
+# Windows-native scripts keep CRLF so they run from cmd/PowerShell without issues.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaries
+*.png binary
+*.jar binary
+*.apk binary
+*.keystore binary
+*.jks binary
