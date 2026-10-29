@@ -1,4 +1,4 @@
-﻿package com.juzhen.ambientlight.ble
+package com.juzhen.ambientlight.ble
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter

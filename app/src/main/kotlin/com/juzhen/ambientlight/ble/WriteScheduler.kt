@@ -1,4 +1,4 @@
-﻿package com.juzhen.ambientlight.ble
+package com.juzhen.ambientlight.ble
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

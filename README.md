@@ -68,6 +68,11 @@ fun layoutModeFor(width: Dp, height: Dp): LayoutMode = when {
 ├── protocol/                       # 纯 Kotlin/JVM，零 Android 依赖，可单测
 │   └── src/{main,test}/kotlin/com/juzhen/ambient/protocol/
 ├── tools/                          # 协议参考实现（Python）+ 自检
+│   ├── lamp_protocol.py            # 协议参考实现（可给产线/测试直接调用）
+│   ├── verify_protocol.py          # 协议向量自检（CI 也会跑）
+│   ├── selfcheck_kotlin.py         # 无编译器时的静态自检（括号平衡 / import 可解析）
+│   ├── render_layout_mockup.py     # 生成布局示意图
+│   └── push-to-github.ps1          # 一键推送脚本
 └── docs/
     ├── protocol.md                 # 协议规范（帧格式/校验和/12 条命令/状态帧）
     └── screen-adaptation.md        # 屏幕适配说明
