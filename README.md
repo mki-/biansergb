@@ -73,25 +73,26 @@
 
 ## 桌面卡片（App Widget）
 
-五种尺寸，都带开关和六个颜色按钮；**任意点击都会自动连接 `FF:FF:10:98:3C:D9`**。
+五种尺寸，都带圆形开关和六个固定颜色；**控件全部后台直连，不唤起 App**。
 
 ![桌面卡片](docs/widget-mockup.png)
 
 | 卡片 | 占用 | 内容 |
 |---|---|---|
-| 2×1 | 110×40 dp | 开关 + 状态 |
-| 4×1 | 250×40 dp | 开关 + 六色（一行） |
-| 2×2 | 110×110 dp | 开关 + 3×2 色块 |
-| **2×4 竖卡** | **110×250 dp** | **竖版：开关 + 2×3 色块 + 打开** |
-| 4×2 | 250×110 dp | 开关 + 六个大色块 + 打开按钮 |
+| 2×1 | 110×48 dp | 圆形开关 + 状态 |
+| 4×1 | 250×48 dp | 圆形开关 + 六色（一行） |
+| 2×2 | 110×110 dp | 圆形开关 + 3×2 色块 |
+| **2×4 竖卡** | **110×250 dp** | **CarPlay 风格：圆形开关 + 2×3 色块 + 分段色带** |
+| 4×2 | 250×110 dp | 圆形开关 + 六个大色块 + 打开按钮 |
 
-点击行为：卡片空白 → 打开 App；开关 → 开/关灯；色块 → 切到该颜色。
-App 未连接时先记下动作，连上 `PinnedLamp.mac` 并进入 `Ready` 后**自动补齐**，
-所以冷启动点一下就能生效，不用先手动连接。
+交互：**点控件 = 后台连接并生效（不打开 App）**；点卡片空白处才打开 App。
 
-- 用 **RemoteViews + shape drawable**（不引入 Glance）：渐变直接写 XML，零新依赖
-- 用 **PendingIntent 直达 Activity**（不上前台服务）：权限面最小，BLE 连接仍只有一个所有者
-- 蓝牙地址在 `gradle.properties` 的 `ambient.pinnedMac`，六个颜色在 `widget/WidgetCore.kt`
+- `PendingIntent.getBroadcast` → `WidgetActionReceiver`（`goAsync`）→ `QuickBleWriter`
+  一次性 GATT（连→写→断）。不需要前台服务，也不需要通知权限。
+- 直连已知 MAC 不需要扫描，所以后台可用。
+- 「滑动颜色」做成**分段色带**：桌面卡片没有可拖拽的 `SeekBar`（RemoteViews 限制），
+  一条彩虹渐变条点哪段切哪个色相是最接近的形态。
+- 蓝牙地址在 `gradle.properties` 的 `ambient.pinnedMac`，颜色/色相在 `widget/WidgetCore.kt`
 
 实现细节、取舍与自测清单见 [`docs/widgets.md`](docs/widgets.md)。
 

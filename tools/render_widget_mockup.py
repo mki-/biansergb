@@ -149,12 +149,12 @@ def draw_small(img, x, y, f, s):
     d = ImageDraw.Draw(img)
     text(d, (x + 20, y + 22), "氛围灯", f["bold"], WHITE)
     text(d, (x + 20, y + 44), "已开灯", f["tiny"], MUTED_70)
-    pill(img, (x + 108, y + 16, x + 164, y + 48), "开", f["label"])
+    circle_power(img, x + 176 - 12 - 29, y + 32, 29, "开", f["label"])
 
 
 def draw_wide(img, x, y, f, s):
     card(img, (x, y, x + 400, y + 64))
-    pill(img, (x + 16, y + 14, x + 100, y + 50), "开", f["label"])
+    circle_power(img, x + 12 + 29, y + 32, 29, "开", f["label"])
     for i in range(6):
         cx = x + 128 + i * (36 + 10) + 18
         dot(img, cx, y + 32, 18, SWATCHES[i])
@@ -164,7 +164,7 @@ def draw_square(img, x, y, f, s):
     card(img, (x, y, x + 176, y + 176))
     d = ImageDraw.Draw(img)
     text(d, (x + 18, y + 26), "氛围灯", f["bold"], WHITE)
-    pill(img, (x + 108, y + 14, x + 160, y + 42), "开", f["label"])
+    circle_power(img, x + 176 - 16 - 29, y + 14 + 29, 29, "开", f["label"])
     for row in range(2):
         for col in range(3):
             cx = x + 46 + col * 44
@@ -176,7 +176,7 @@ def draw_big(img, x, y, f, s):
     card(img, (x, y, x + 400, y + 176))
     d = ImageDraw.Draw(img)
     text(d, (x + 20, y + 30), "氛围灯", f["bold"], WHITE)
-    pill(img, (x + 316, y + 14, x + 384, y + 46), "开", f["label"])
+    circle_power(img, x + 400 - 18 - 34, y + 14 + 34, 34, "开", f["label"])
     for i in range(6):
         cx = x + 40 + i * (54 + 10) + 25
         dot(img, cx, y + 92, 26, SWATCHES[i])
@@ -184,19 +184,53 @@ def draw_big(img, x, y, f, s):
     pill(img, (x + 312, y + 134, x + 384, y + 164), "打开", f["label"], solid_gradient=True)
 
 
+def circle_power(img, cx, cy, r, label, f, on=True):
+    """Round power button: brand gradient when on, dark glass when off."""
+    box = (cx - r, cy - r, cx + r, cy + r)
+    if on:
+        grad_rounded(img, box, (168, 85, 247), (217, 70, 239), int(r))
+
+        def ring(d, w, h):
+            d.ellipse((0, 0, w - 1, h - 1), outline=WHITE + (110,), width=2)
+
+        composited(img, box, ring)
+        color = WHITE
+    else:
+        def glass(d, w, h):
+            d.ellipse((0, 0, w - 1, h - 1), fill=(0, 0, 0, 60))
+            d.ellipse((0, 0, w - 1, h - 1), outline=WHITE + (140,), width=2)
+
+        composited(img, box, glass)
+        color = WHITE
+    ImageDraw.Draw(img).text((cx, cy), label, font=f, fill=color, anchor="mm")
+
+
 def draw_tall(img, x, y, f, s):
-    """2x4 portrait card: 2-column x 3-row swatch grid."""
+    """2x4 portrait card, CarPlay style: round power, 3x2 swatches, hue strip."""
     card(img, (x, y, x + 176, y + 400))
     d = ImageDraw.Draw(img)
-    text(d, (x + 18, y + 26), "氛围灯", f["bold"], WHITE)
-    pill(img, (x + 104, y + 12, x + 160, y + 44), "开", f["label"])
+
+    text(d, (x + 16, y + 30), "氛围灯", f["bold"], WHITE)
+    circle_power(img, x + 176 - 16 - 32, y + 16 + 32, 32, "开", f["label"], on=True)
+
+    # 3 rows x 2 cols of 36dp swatches (1.6x -> 58px), 16dp gap
     for row in range(3):
         for col in range(2):
-            cx = x + 58 + col * 62
-            cy = y + 104 + row * 96
-            dot(img, cx, cy, 24, SWATCHES[row * 2 + col])
-    text(d, (x + 18, y + 366), "已开灯", f["tiny"], MUTED_70)
-    pill(img, (x + 104, y + 354, x + 160, y + 384), "打开", f["label"], solid_gradient=True)
+            cx = x + 46 + col * 84
+            cy = y + 127 + row * 75
+            dot(img, cx, cy, 29, SWATCHES[row * 2 + col])
+
+    # segmented hue strip (6 steps of 60 degrees)
+    sx, sy, sw, sh = x + 16, y + 315, 144, 45
+    seg = sw / 6
+    strip = [SWATCHES[2][1], SWATCHES[2][0], (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
+    hue_colors = [(255, 0, 0), (255, 255, 0), (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
+    for i, c in enumerate(hue_colors):
+        bx = (sx + i * seg, sy, sx + (i + 1) * seg - 2, sy + sh)
+        rr_box = (int(bx[0]), int(bx[1]), int(bx[2]), int(bx[3]))
+        d.rounded_rectangle(rr_box, radius=6, fill=c)
+
+    text(d, (x + 16, y + 372), "已开灯", f["tiny"], MUTED_70)
 
 
 def main():
@@ -222,7 +256,7 @@ def main():
 
     d = ImageDraw.Draw(img)
     text(d, (36, 22), "氛围灯 · 桌面卡片（App Widget）", f["title"], WHITE)
-    text(d, (36, 54), "五种尺寸：横卡、方卡，以及 2×4 竖卡；任意点击都会自动连接 FF:FF:10:98:3C:D9",
+    text(d, (36, 54), "所有控件后台直连 FF:FF:10:98:3C:D9，不唤起 App；只有点卡片空白处才打开 App",
          f["tiny"], MUTED_55)
 
     draw_wide(img, 36, 104, f, None)
@@ -240,7 +274,7 @@ def main():
     draw_tall(img, 744, 104, f, None)
     d = ImageDraw.Draw(img)
     text(d, (744, 512), "2×4  竖版（新增）", f["tiny"], (255, 193, 7))
-    text(d, (36, 424), "尺寸按 dp 设计，车机 800×480 与手机桌面通用；点按卡片 = 打开 App 并自动连接",
+    text(d, (36, 424), "2×4 竖卡为 CarPlay 风格：圆形开关 + 2×3 色块 + 分段色带（RemoteViews 不支持拖拽滑块）",
          f["tiny"], MUTED_55)
 
     out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

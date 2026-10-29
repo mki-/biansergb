@@ -124,6 +124,16 @@
                 android:resource="@xml/widget_tall_info" />
         </receiver>
 
+        <!--
+          Desktop card controls fire this receiver so the lamp is driven in the
+          background (no activity, no service). exported=false is enough: the
+          PendingIntent is created by this app, so it executes with this app's
+          identity even when the launcher sends it.
+        -->
+        <receiver
+            android:name=".widget.WidgetActionReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

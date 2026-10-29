@@ -79,7 +79,7 @@ class BigLampWidgetProvider : BaseLampWidgetProvider() {
     }
 }
 
-/** 2×4 portrait card — for tall home-screen slots. */
+/** 2×4 portrait card — CarPlay-style: round power, 3×2 swatches, hue strip. */
 class TallLampWidgetProvider : BaseLampWidgetProvider() {
     override val spec: WidgetSpec get() = SPEC
 
@@ -88,7 +88,8 @@ class TallLampWidgetProvider : BaseLampWidgetProvider() {
             layoutId = R.layout.widget_tall,
             hasColors = true,
             hasState = true,
-            hasOpen = true,
+            hasOpen = false,
+            hueSteps = WidgetActions.STRIP_HUES,
         )
     }
 }

@@ -1,7 +1,7 @@
 # 桌面卡片（App Widget）
 
-氛围灯提供 **5 种尺寸**的桌面卡片，都带开关和六个颜色按钮，**任意点击都会自动连接
-`FF:FF:10:98:3C:D9`**。
+氛围灯提供 **5 种尺寸**的桌面卡片。**所有控件都在后台直连设备生效，不会唤起 App**；
+只有点卡片空白处才打开 App。
 
 ![桌面卡片设计稿](widget-mockup.png)
 
@@ -9,115 +9,113 @@
 
 | 卡片 | 占用格 | 最小尺寸 | 内容 |
 |---|---|---|---|
-| `SmallLampWidgetProvider` | 2×1 | 110×40 dp | 标题 + 状态 + 开关 |
-| `WideLampWidgetProvider` | 4×1 | 250×40 dp | 开关 + 六色（一行） |
-| `SquareLampWidgetProvider` | 2×2 | 110×110 dp | 标题 + 开关 + 3×2 色块 |
-| `TallLampWidgetProvider` | **2×4** | **110×250 dp** | **竖版**：标题 + 开关 + 2×3 色块 + 打开 |
-| `BigLampWidgetProvider` | 4×2 | 250×110 dp | 标题 + 开关 + 六个大色块 + 打开按钮 |
+| `SmallLampWidgetProvider` | 2×1 | 110×48 dp | 标题 + 状态 + 圆形开关 |
+| `WideLampWidgetProvider` | 4×1 | 250×48 dp | 圆形开关 + 六色（一行） |
+| `SquareLampWidgetProvider` | 2×2 | 110×110 dp | 标题 + 圆形开关 + 3×2 色块 |
+| `TallLampWidgetProvider` | **2×4** | **110×250 dp** | **CarPlay 风格**：圆形开关 + 2×3 色块 + 分段色带 |
+| `BigLampWidgetProvider` | 4×2 | 250×110 dp | 标题 + 圆形开关 + 六个大色块 + 打开按钮 |
 
-竖卡（2×4）的色块按 **2 列 × 3 行**排列，适合桌面上的窄长空位；最小可缩到 110×180 dp。
+设计要点（CarPlay 取向）：
 
-- 支持 `resizeMode="horizontal|vertical"`，用户可自由拉宽拉高
-- Android 12+ 有 `targetCellWidth/Height` 和 `previewLayout`，选择器里显示真实预览
-- `updatePeriodMillis=1800000`（30 分钟）只做兜底刷新；正常靠 App 主动推
+- 开关是**圆形按钮**（开=紫粉渐变，关=深色玻璃），不再是文字胶囊
+- 色块等距、尽量大；2×4 竖卡用 2 列 × 3 行
+- 2×4 竖卡额外带一条**分段色带**，去掉多余的「打开」按钮（点标题区域即可打开 App）
 
-## 2. 六个颜色
+`resizeMode="horizontal|vertical"`，用户可自由拉伸；Android 12+ 有真实预览。
 
-对应主界面的预设（`ui/PresetColors` 的下标）：
+## 2. 三个控件
 
-| 卡片按钮 | 预设 | RGB |
-|---|---|---|
-| 白色 | 正白（idx 2） | `255,255,255` |
-| 粉色 | 桃粉（idx 13） | `255,105,180` |
-| 红色 | 大红（idx 9） | `255,0,0` |
-| 紫色 | 紫罗兰（idx 16） | `138,43,226` |
-| 蓝色 | 正蓝（idx 20） | `0,0,255` |
-| 青色 | 青色（idx 24） | `0,255,255` |
+| 控件 | 行为 |
+|---|---|
+| **圆形开关** | 开/关灯（按下时取反当前已知状态），后台直连 |
+| **固定色块 ×6** | 白 / 粉 / 红 / 紫 / 蓝 / 青，对应主界面预设（idx 2 / 13 / 9 / 16 / 20 / 24） |
+| **分段色带 ×6** | 红→黄→绿→青→蓝→品红（0°/60°/…/300°），后台直连 |
 
-映射表在 `widget/WidgetCore.kt` 的 `WidgetActions.PALETTE`，改这里即可换颜色；
-色块外观在 `res/drawable/widget_dot_*.xml`。
+> **关于"滑动颜色"**：首页卡片**无法做真正的拖拽滑块** —— RemoteViews 只允许
+> `ProgressBar`（只读），没有可交互的 `SeekBar`。所以这里做成**分段色带**：
+> 视觉上是一条彩虹渐变条，点哪一段就切到那个色相。这是桌面上能做到的最接近"滑动选色"的形态。
+> 需要连续拖拽调色时，点卡片空白处进 App 用色盘。
 
-## 3. 交互模型
-
-```
-点卡片空白处  ──→ 打开 App（不改变灯）
-点开关        ──→ 打开 App + 开/关灯（取反当前已知状态）
-点某个色块    ──→ 打开 App + 切到该颜色
-```
-
-三条路径都走同一个入口：`WidgetIntents` 构造带 extra 的 `PendingIntent` →
-`MainActivity` → `LampViewModel.onWidgetAction()`。
-
-`onWidgetAction` 的流程（关键设计）：
+## 3. 交互模型（关键：不唤起 App）
 
 ```
-卡片被点
-   ├─ 已连接？ → 立即下发命令
-   └─ 未连接？ → 记住待执行动作
-                → 连接 PinnedLamp.mac
-                → 等 LinkState.Ready
-                → 自动补齐：先切颜色 / 再开关
+点圆形开关   ──→ 广播 → 后台连 FF:FF:10:98:3C:D9 → 开/关
+点固定色块   ──→ 广播 → 后台连接 → 若灯是关的则先开灯 → 下发该颜色
+点分段色带   ──→ 广播 → 后台连接 → 同上，色相由色带段位决定
+点卡片空白   ──→ 打开 App（并自动连接）
 ```
 
-所以**冷启动也只需点一下**：从桌面直接点「蓝色」，App 会自己连上并把灯变蓝。
+实现链路：
 
-## 4. 两处刻意的技术选择
+```
+PendingIntent.getBroadcast
+   └─ WidgetActionReceiver (goAsync)
+        └─ LampQuickAction  → 组帧（LampCommand）
+             └─ QuickBleWriter：connectGatt → discoverServices → write → disconnect
+                  └─ WidgetState 落盘 + WidgetUpdater.refreshAll 重绘卡片
+```
 
-### 4.1 用 RemoteViews 而不是 Glance
+### 为什么不用前台服务
 
-Glance（Compose for widgets）要新增一个依赖和一套新的声明式 API，而且它的
-`background` 只接受纯色或 ImageProvider，做不了渐变。本项目用
-**RemoteViews + shape drawable**：
+Android 12+ 限制后台启动前台服务，用服务还得配通知渠道、`POST_NOTIFICATIONS`、
+`FOREGROUND_SERVICE_CONNECTED_DEVICE` 等一堆权限。
 
-- 零新依赖，构建风险最低（这个项目本地没有编译器，只能靠 CI 验证）
-- 渐变直接用 `<gradient>` 写在 XML 里，和主界面的 violet→fuchsia 完全一致
-- 4 个布局文件全部手写，尺寸和间距可精确控制到 dp
+这里改用 **`goAsync()` + 一次性 GATT 会话**：
 
-代价是布局要用 `LinearLayout`/`ImageView` 这类老式视图，不能写 Compose。
+- 广播的异步窗口约 10 秒，`QuickBleWriter` 自己封顶 9 秒
+- 直连已知 MAC 不需要扫描（后台受限的只有"扫描"，不是"连接"）
+- 零新增权限、零常驻通知、零服务
 
-### 4.2 用 Activity 而不是前台服务
+代价：若设备不在范围内/被别的手机占用，连接会失败 —— 卡片会把状态文字改成
+「连接失败，点这里打开 App」，让用户知道发生了什么事。
 
-真正的「点了就执行、不打开 App」需要 `BroadcastReceiver` + 前台服务
-（Android 14 还要 `FOREGROUND_SERVICE_CONNECTED_DEVICE` 权限 + 常驻通知）。
+### 为什么 PendingIntent 能发到非导出组件
 
-本项目选择 **PendingIntent 直达 MainActivity**：
+`exported="false"` 的 `WidgetActionReceiver` 依然能被卡片触发：`PendingIntent`
+由本应用创建，**发送时以创建者的身份执行**，所以由桌面（另一个进程）发出也等同于本应用自发。
 
-- 不需要前台服务、不需要通知权限，权限面最小
-- BLE 连接的唯一所有者仍是 Activity/ViewModel，不存在两个进程抢 GATT
-- 代价：点击会切到 App 界面（车机上反而更好——用户能看到连接状态）
+## 4. 状态同步
 
-如果以后要做「静默执行」，改造点很明确：新增一个 Service，把
-`LampViewModel.onWidgetAction` 的「连接→等 Ready→下发」逻辑搬进去复用即可。
+卡片自己不保持连接，它显示的是 **App/卡片动作记住的最后状态**：
 
-## 5. 状态的同步
+- `WidgetState`（SharedPreferences）存 `power_on` 与 `last_error`
+- 后台动作完成后写回并 `WidgetUpdater.refreshAll()` 重绘所有卡片
+- App 收到设备状态帧或自己下发开关时也写回，所以卡片与真实状态不会长期脱节
 
-卡片自己不碰 BLE，它显示的是 **App 记住的最后状态**：
+## 5. 技术选型：RemoteViews 而非 Glance
 
-- `WidgetState`（SharedPreferences）存 `power_on`
-- App 收到设备状态帧、或自己下发了开关命令时，写回该值并调用
-  `WidgetUpdater.refreshAll(context)` 重绘所有卡片
-- 因此卡片上的「开/关」不会和灯的真实状态长期脱节
+Glance（Compose for widgets）要新增依赖，且 `background` 只接受纯色或 ImageProvider，
+做不了渐变。本项目用 **RemoteViews + shape drawable**：
+
+- 零新依赖（这个项目本地没有编译器，只能靠 CI 验证，少一个依赖少一分风险）
+- 渐变直接写 XML，与主界面 violet→fuchsia 完全一致
+- 布局全部手写，尺寸精确到 dp
+
+代价：只能用 `LinearLayout` / `ImageView` 这类老式视图，写不了 Compose。
 
 ## 6. 改配置
 
 | 想改 | 改哪里 |
 |---|---|
-| 自动连接的蓝牙地址 | `gradle.properties` → `ambient.pinnedMac`（会写进 `BuildConfig.PINNED_MAC`） |
-| 卡片上的六个颜色 | `widget/WidgetCore.kt` → `WidgetActions.PALETTE` |
+| 自动连接的蓝牙地址 | `gradle.properties` → `ambient.pinnedMac`（写进 `BuildConfig.PINNED_MAC`） |
+| 六个固定颜色 | `widget/WidgetCore.kt` → `WidgetActions.PALETTE` |
+| 色带色相 | `widget/WidgetCore.kt` → `WidgetActions.STRIP_HUES` + `res/drawable/widget_hue_*.xml` |
 | 色块外观 | `res/drawable/widget_dot_*.xml` |
+| 开关外观（开/关） | `res/drawable/widget_circle_on.xml` / `widget_circle_off.xml` |
 | 卡片背景渐变 | `res/drawable/widget_bg.xml` |
-| 卡片尺寸 | `res/xml/widget_*_info.xml` + 对应的 `res/layout/widget_*.xml` |
+| 卡片尺寸 | `res/xml/widget_*_info.xml` + `res/layout/widget_*.xml` |
 
 ## 7. 自测清单
 
-1. 长按桌面 → 卡片 → 应看到 **4 个**「氛围灯…」条目，且选择器里有预览
-2. 逐个添加，确认：
-   - 渐变背景、圆角、文字清晰
-   - 开关按钮点击后 App 被拉起并连上 `FF:FF:10:98:3C:D9`
-   - 六个色块点击后灯变对应颜色
-3. 在 App 里切开关，回到桌面确认卡片上的「开/关」跟着变
-4. 把一个卡片拖到最小尺寸，确认不崩、不重叠（内容会被裁切但不崩）
+1. 长按桌面 → 卡片 → 应看到 **5 个**「氛围灯…」条目，且选择器里有预览
+2. **后台直连**（重点）：
+   - 先把 App 从最近任务里划掉
+   - 点卡片上的色块 → **不应**跳到 App，灯应直接变色
+   - 点圆形开关 → 灯应直接开/关，卡片上的「开/关」跟着变
+3. 点卡片空白处 → 应打开 App 并自动连接 `FF:FF:10:98:3C:D9`
+4. 设备断电/远离后点色块 → 几秒后卡片状态变成「连接失败，点这里打开 App」
+5. 把卡片拖到最小尺寸，确认不崩（内容裁切但不崩）
 
-> 静态自检（不需要设备）：`python tools/check_resources.py` 会校验所有
-> `R.id.*`、`@drawable/*`、`@string/*` 引用是否存在——卡片布局是手写的，
-> 这条检查能挡住拼写错误。
+> 静态自检（无需设备）：`python tools/check_resources.py` 校验所有
+> `R.id.*`、`@drawable/*`、`@string/*`、`@layout/*` 引用是否存在。
+> 卡片布局是手写的，这条检查能挡住拼写错误。

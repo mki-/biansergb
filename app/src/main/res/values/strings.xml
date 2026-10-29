@@ -18,6 +18,15 @@
     <string name="widget_color_blue">蓝色</string>
     <string name="widget_color_cyan">青色</string>
 
+    <string name="widget_hue_red">色带 · 红</string>
+    <string name="widget_hue_yellow">色带 · 黄</string>
+    <string name="widget_hue_green">色带 · 绿</string>
+    <string name="widget_hue_cyan">色带 · 青</string>
+    <string name="widget_hue_blue">色带 · 蓝</string>
+    <string name="widget_hue_magenta">色带 · 品红</string>
+
+    <string name="widget_state_error">连接失败，点这里打开 App</string>
+
     <string name="widget_small_label">氛围灯 · 开关（2×1）</string>
     <string name="widget_wide_label">氛围灯 · 开关 + 六色（4×1）</string>
     <string name="widget_square_label">氛围灯 · 六色方卡（2×2）</string>

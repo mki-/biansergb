@@ -9,8 +9,11 @@ import com.juzhen.ambientlight.R
  * Renders every widget instance of one layout.
  *
  * Only the views that actually exist in [WidgetSpec.layoutId] are touched: calling
- * `setOnClickPendingIntent` for a missing id makes RemoteViews throw when the
- * launcher applies it.
+ * `setOnClickPendingIntent` for a missing id makes RemoteViews throw when the launcher
+ * applies it, so every optional control is guarded by a spec flag.
+ *
+ * Controls fire broadcasts ([WidgetIntents.action]) so the lamp is driven in the
+ * background; only the card background opens the app.
  */
 object LampWidgetRenderer {
 
@@ -23,6 +26,15 @@ object LampWidgetRenderer {
         R.id.widget_color_5,
     )
 
+    private val HUE_VIEW_IDS = intArrayOf(
+        R.id.widget_hue_0,
+        R.id.widget_hue_1,
+        R.id.widget_hue_2,
+        R.id.widget_hue_3,
+        R.id.widget_hue_4,
+        R.id.widget_hue_5,
+    )
+
     fun render(
         context: Context,
         manager: AppWidgetManager,
@@ -30,17 +42,15 @@ object LampWidgetRenderer {
         spec: WidgetSpec,
     ) {
         val powerOn = WidgetState.isPowerOn(context)
+        val failed = WidgetState.hasError(context)
 
         for (widgetId in ids) {
             val views = RemoteViews(context.packageName, spec.layoutId)
 
-            // Tap anywhere on the card -> open the app (which connects and applies nothing else).
-            views.setOnClickPendingIntent(
-                R.id.widget_root,
-                WidgetIntents.action(context, widgetId, WidgetActions.CODE_OPEN),
-            )
+            // Background tap -> open the app. Everything else stays in the launcher.
+            views.setOnClickPendingIntent(R.id.widget_root, WidgetIntents.openApp(context, widgetId))
 
-            // The power pill toggles the other way round.
+            // Round power button: toggles the opposite of the known state.
             views.setOnClickPendingIntent(
                 R.id.widget_power,
                 WidgetIntents.action(
@@ -54,14 +64,19 @@ object LampWidgetRenderer {
                 R.id.widget_power,
                 context.getString(if (powerOn) R.string.widget_on else R.string.widget_off),
             )
+            views.setInt(
+                R.id.widget_power,
+                "setBackgroundResource",
+                if (powerOn) R.drawable.widget_circle_on else R.drawable.widget_circle_off,
+            )
 
             if (spec.hasState) {
-                views.setTextViewText(
-                    R.id.widget_state,
-                    context.getString(
-                        if (powerOn) R.string.widget_state_on else R.string.widget_state_off,
-                    ),
-                )
+                val stateText = when {
+                    failed -> R.string.widget_state_error
+                    powerOn -> R.string.widget_state_on
+                    else -> R.string.widget_state_off
+                }
+                views.setTextViewText(R.id.widget_state, context.getString(stateText))
             }
 
             if (spec.hasColors) {
@@ -78,11 +93,22 @@ object LampWidgetRenderer {
                 }
             }
 
+            spec.hueSteps.forEachIndexed { index, degrees ->
+                if (index < HUE_VIEW_IDS.size) {
+                    views.setOnClickPendingIntent(
+                        HUE_VIEW_IDS[index],
+                        WidgetIntents.action(
+                            context,
+                            widgetId,
+                            WidgetActions.CODE_HUE_BASE + index,
+                            hueDegrees = degrees,
+                        ),
+                    )
+                }
+            }
+
             if (spec.hasOpen) {
-                views.setOnClickPendingIntent(
-                    R.id.widget_open,
-                    WidgetIntents.action(context, widgetId, WidgetActions.CODE_OPEN),
-                )
+                views.setOnClickPendingIntent(R.id.widget_open, WidgetIntents.openApp(context, widgetId))
             }
 
             manager.updateAppWidget(widgetId, views)
