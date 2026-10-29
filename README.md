@@ -7,6 +7,27 @@
 
 ---
 
+## 构建状态
+
+[![Android CI](https://github.com/mki-/biansergb/actions/workflows/android.yml/badge.svg)](https://github.com/mki-/biansergb/actions/workflows/android.yml)
+
+**已实测通过**（tag `v2.0.0`）：协议向量自检 → 协议单测 → 构建 debug/release → 上传产物 → 发布 Release。
+
+### 下载安装包
+
+👉 **[Releases · v2.0.0](https://github.com/mki-/biansergb/releases/tag/v2.0.0)**
+
+| 文件 | 大小 | 说明 |
+|---|---|---|
+| `app-release.apk` | **0.93 MB** | 正式包（R8 混淆 + 资源压缩），日常安装用这个 |
+| `app-debug.apk` | 9.18 MB | 调试包，`applicationId` 带 `.debug` 后缀，可和正式包共存 |
+
+> `app-release.apk` 当前由 **Android debug 证书**签名（CI 未配密钥），可直接安装测试。
+> 要上架或正式分发，按下方「正式签名」配好 4 个 Secret 后重新打 tag 即可。
+
+
+---
+
 ## 一句话亮点
 
 | | 原厂 App | 本项目 |
