@@ -89,7 +89,9 @@ class LampFrameTest {
 
     @Test
     fun `range validation rejects bad values`() {
-        listOf<() -> ByteArray>(
+        // `Any` because the last case builds an Rgb (whose constructor validates),
+        // not a frame — all of them must reject the input.
+        listOf<() -> Any>(
             { LampCommand.brightness(101, 0) },
             { LampCommand.brightness(0, -1) },
             { LampCommand.speed(6) },
