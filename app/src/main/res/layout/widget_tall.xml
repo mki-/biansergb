@@ -191,6 +191,6 @@
         android:layout_marginTop="6dp"
         android:maxLines="1"
         android:text="@string/widget_state_connect"
-        android:textColor="#B3FFFFFF"
+        android:textColor="#8E8E93"
         android:textSize="11sp" />
 </LinearLayout>

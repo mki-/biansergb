@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Card background: violet-600 -> fuchsia-600, the brand horizontal gradient. -->
+<!--
+  CarPlay-style tile: near-black panel, 22dp radius, hairline border.
+  Not a full-bleed gradient any more — in CarPlay the colour lives in the controls,
+  the surface stays dark. A faint violet tint at the top keeps a link to the app.
+-->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <gradient
-        android:angle="0"
-        android:startColor="#7C3AED"
-        android:centerColor="#A855F7"
-        android:endColor="#C026D3"
+        android:angle="270"
+        android:startColor="#1E1826"
+        android:endColor="#0A0A0E"
         android:type="linear" />
-    <corners android:radius="24dp" />
+    <corners android:radius="22dp" />
     <stroke
         android:width="1dp"
-        android:color="#40FFFFFF" />
+        android:color="#1FFFFFFF" />
 </shape>

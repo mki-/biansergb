@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Swatch: flat fill + hairline ring, iOS control style. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
-    <gradient
-        android:angle="315"
-        android:startColor="#FFFAF5"
-        android:endColor="#FFFFFF"
-        android:type="linear" />
+    <solid android:color="#FFFFFFFF" />
     <stroke
-        android:width="2dp"
-        android:color="#66FFFFFF" />
+        android:width="1.5dp"
+        android:color="#33000000" />
 </shape>

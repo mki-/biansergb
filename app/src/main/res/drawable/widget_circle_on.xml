@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Power button, ON state: brand gradient circle. -->
+<!-- Power ON: iOS system green, flat like a CarPlay toggle. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
-    <gradient
-        android:angle="315"
-        android:startColor="#A855F7"
-        android:endColor="#D946EF"
-        android:type="linear" />
+    <solid android:color="#30D158" />
     <stroke
         android:width="1.5dp"
-        android:color="#66FFFFFF" />
+        android:color="#40FFFFFF" />
 </shape>

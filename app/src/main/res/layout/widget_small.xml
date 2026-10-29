@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:text="@string/widget_state_connect"
-            android:textColor="#CCFFFFFF"
+            android:textColor="#8E8E93"
             android:textSize="11sp" />
     </LinearLayout>
 

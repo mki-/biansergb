@@ -3,6 +3,7 @@ package com.juzhen.ambientlight.widget
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.juzhen.ambient.protocol.Rgb
 import com.juzhen.ambientlight.BuildConfig
 import com.juzhen.ambientlight.ui.MainActivity
 
@@ -45,10 +46,20 @@ object WidgetActions {
     const val CODE_HUE_BASE = 8
 
     /**
-     * The six fixed swatches, as indices into [com.juzhen.ambientlight.ui.PresetColors]:
-     * 正白, 桃粉, 大红, 紫罗兰, 正蓝, 青色.
+     * The six fixed swatches, as literal RGB.
+     *
+     * These are sent as-is (not looked up from the app's presets) so the colour the
+     * card shows is exactly the colour the lamp receives. The hues are iOS system
+     * colours, which is what makes the card read as CarPlay: dark surface, vivid controls.
      */
-    val PALETTE: List<Int> = listOf(2, 13, 9, 16, 20, 24)
+    val SWATCHES: List<Rgb> = listOf(
+        Rgb(255, 255, 255),   // 白
+        Rgb(255, 105, 180),   // 粉
+        Rgb(255, 59, 48),     // 红  (systemRed)
+        Rgb(191, 90, 242),    // 紫  (systemPurple)
+        Rgb(10, 132, 255),    // 蓝  (systemBlue)
+        Rgb(100, 210, 255),   // 青  (systemTeal)
+    )
 
     /**
      * Hues of the tall card's segmented colour strip. Six segments at 60° each map

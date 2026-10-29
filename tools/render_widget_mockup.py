@@ -1,8 +1,8 @@
 """
-render_widget_mockup.py — design review sheet for the four desktop cards.
+render_widget_mockup.py — design sheet for the five desktop cards, drawn in a
+CarPlay-inspired style: near-black tiles, hairline borders, vivid iOS control colours.
 
-Draws each size at 1.6x on a desktop-like backdrop. Not a screenshot: shapes
-approximate the RemoteViews layouts.
+Not a screenshot: shapes approximate the RemoteViews layouts.
 
     python tools/render_widget_mockup.py     # writes docs/widget-mockup.png
 """
@@ -11,29 +11,40 @@ from __future__ import annotations
 
 import os
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-INK_INDIGO = (30, 27, 75)
-SLATE_950 = (2, 6, 23)
-VIOLET_500 = (139, 92, 246)
-VIOLET_600 = (124, 58, 237)
-PURPLE_500 = (168, 85, 247)
-FUCHSIA_500 = (217, 70, 239)
-FUCHSIA_600 = (192, 38, 211)
-CYAN_500 = (6, 182, 212)
+# --- CarPlay / iOS palette ------------------------------------------------
+SURFACE_TOP = (30, 24, 38)       # faint violet tint at the top of a tile
+SURFACE_BOTTOM = (10, 10, 14)
+TILE_BORDER = (255, 255, 255, 31)
+
+IOS_GREEN = (48, 209, 88)        # systemGreen — power ON
+IOS_GRAY = (58, 58, 60)          # systemGray3 — power OFF
+IOS_SECONDARY = (142, 142, 147)  # secondaryLabel
 WHITE = (255, 255, 255)
-MUTED_70 = (206, 202, 226)
-MUTED_55 = (170, 166, 198)
+DARK_LABEL = (11, 11, 15)
 
-# white / pink / red / purple / blue / cyan  (matches WidgetActions.PALETTE and the
-# widget_dot_*.xml gradients: base colour with a slightly lighter top-left)
-SWATCHES = [
-    ((255, 250, 245), (255, 255, 255)),
-    ((255, 140, 198), (255, 105, 180)),
-    ((255, 77, 77), (255, 0, 0)),
-    ((168, 90, 240), (138, 43, 226)),
-    ((77, 77, 255), (0, 0, 255)),
-    ((125, 255, 255), (0, 229, 229)),
+BACKDROP_TOP = (26, 20, 34)
+BACKDROP_BOTTOM = (6, 5, 14)
+
+# 白 / 粉 / 红 / 紫 / 蓝 / 青  — must match WidgetActions.SWATCHES
+SWATCH_COLORS = [
+    (255, 255, 255),
+    (255, 105, 180),
+    (255, 59, 48),
+    (191, 90, 242),
+    (10, 132, 255),
+    (100, 210, 255),
+]
+
+# hue strip segments (60° steps) — must match widget_hue_0/2/4/6/8/10
+HUE_COLORS = [
+    (255, 0, 0),
+    (255, 255, 0),
+    (0, 255, 0),
+    (0, 255, 255),
+    (0, 0, 255),
+    (255, 0, 255),
 ]
 
 FONTS = [
@@ -79,203 +90,162 @@ def composited(img, box, fn):
     img.alpha_composite(layer, (x0, y0))
 
 
-def grad_rounded(img, box, c1, c2, radius):
+def tile(img, box, radius=22):
+    """Near-black tile with a hairline border, clipped to rounded corners."""
     x0, y0, x1, y1 = _ints(box)
-    w, h = max(1, x1 - x0), max(1, y1 - y0)
-    grad = Image.new("RGBA", (w, h))
-    gd = ImageDraw.Draw(grad)
-    for x in range(w):
-        gd.line((x, 0, x, h), fill=lerp(c1, c2, x / (w - 1) if w > 1 else 0) + (255,))
+    w, h = x1 - x0, y1 - y0
+    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(layer)
+    for y in range(h):
+        ld.line((0, y, w, y), fill=lerp(SURFACE_TOP, SURFACE_BOTTOM, y / max(1, h - 1)) + (255,))
     mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, w - 1, h - 1), radius=radius, fill=255)
-    img.paste(grad, (x0, y0), mask)
+    img.paste(layer, (x0, y0), mask)
 
-
-def card(img, box, radius=30):
-    grad_rounded(img, box, VIOLET_600, FUCHSIA_600, radius)
-
-    def border(d, w, h):
-        d.rounded_rectangle((0, 0, w - 1, h - 1), radius=radius, outline=WHITE + (70,), width=2)
+    def border(d, ww, hh):
+        d.rounded_rectangle((0, 0, ww - 1, hh - 1), radius=radius, outline=TILE_BORDER, width=2)
 
     composited(img, box, border)
 
 
-def pill(img, box, label, f, solid_gradient=False):
-    if solid_gradient:
-        grad_rounded(img, box, (255, 255, 255), (241, 231, 255), 20)
-        color = (124, 58, 237)
-    else:
-        def fill(d, w, h):
-            d.rounded_rectangle((0, 0, w - 1, h - 1), radius=20, fill=WHITE + (48,))
-            d.rounded_rectangle((0, 0, w - 1, h - 1), radius=20, outline=WHITE + (82,), width=1)
+def power(img, cx, cy, r, label, f, on=True):
+    fill = IOS_GREEN if on else IOS_GRAY
+    box = (cx - r, cy - r, cx + r, cy + r)
+    ImageDraw.Draw(img).ellipse(box, fill=fill)
 
-        composited(img, box, fill)
-        color = WHITE
+    def ring(d, w, h):
+        d.ellipse((0, 0, w - 1, h - 1), outline=WHITE + (64,), width=2)
 
-    x0, y0, x1, y1 = _ints(box)
+    composited(img, box, ring)
+    ImageDraw.Draw(img).text((cx, cy), label, font=f, fill=WHITE, anchor="mm")
+
+
+def dot(img, cx, cy, r, color):
+    d = ImageDraw.Draw(img)
+    box = (cx - r, cy - r, cx + r, cy + r)
+    d.ellipse(box, fill=color)
+    ring = (0, 0, 0, 51) if sum(color) > 600 else WHITE + (64,)
+    d.ellipse(box, outline=ring, width=2)
+
+
+def open_pill(img, box, label, f):
+    box = _ints(box)
+    ImageDraw.Draw(img).rounded_rectangle(box, radius=16, fill=WHITE)
     ImageDraw.Draw(img).text(
-        ((x0 + x1) / 2, (y0 + y1) / 2), label, font=f, fill=color, anchor="mm"
+        ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2), label, font=f, fill=DARK_LABEL, anchor="mm"
     )
 
 
-def dot(img, cx, cy, r, colors):
-    base, light = colors
-    d = ImageDraw.Draw(img)
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=base)
-    box = _ints((cx - r, cy - r, cx + r, cy + r))
-    w, h = box[2] - box[0], box[3] - box[1]
-    if w <= 0 or h <= 0:
-        return
-    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ld = ImageDraw.Draw(layer)
-    for k, a in ((0.70, 52), (0.50, 40)):
-        hr = w * k / 2
-        ld.ellipse((w * 0.30 - hr, h * 0.26 - hr, w * 0.30 + hr, h * 0.26 + hr), fill=light + (a,))
-    circle = Image.new("L", (w, h), 0)
-    ImageDraw.Draw(circle).ellipse((0, 0, w - 1, h - 1), fill=255)
-    rch, gch, bch, ach = layer.split()
-    ach = ImageChops.multiply(ach, circle)
-    img.alpha_composite(Image.merge("RGBA", (rch, gch, bch, ach)), (box[0], box[1]))
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=WHITE + (110,), width=2)
+def hue_strip(img, x, y, w, h, gap=2, radius=6):
+    seg = (w - gap * (len(HUE_COLORS) - 1)) / len(HUE_COLORS)
+    for i, c in enumerate(HUE_COLORS):
+        bx = x + i * (seg + gap)
+        ImageDraw.Draw(img).rounded_rectangle(
+            (int(bx), int(y), int(bx + seg), int(y + h)), radius=radius, fill=c
+        )
 
 
 def text(d, xy, s, f, fill, anchor="la"):
-    d.text(xy, s, font=f, fill=fill, anchor=anchor)
+    d.text(xy, s, font=font, fill=fill, anchor=anchor)
 
 
-# --------------------------------------------------------------- card renderers
-def draw_small(img, x, y, f, s):
-    card(img, (x, y, x + 176, y + 64))
+# ------------------------------------------------------------------ cards
+def draw_small(img, x, y, f):
+    tile(img, (x, y, x + 176, y + 76))
     d = ImageDraw.Draw(img)
-    text(d, (x + 20, y + 22), "氛围灯", f["bold"], WHITE)
-    text(d, (x + 20, y + 44), "已开灯", f["tiny"], MUTED_70)
-    circle_power(img, x + 176 - 12 - 29, y + 32, 29, "开", f["label"])
+    d.text((x + 16, y + 22), "氛围灯", font=f["bold"], fill=WHITE)
+    d.text((x + 16, y + 46), "已开灯", font=f["small"], fill=IOS_SECONDARY)
+    power(img, x + 176 - 14 - 28, y + 38, 28, "开", f["label"])
 
 
-def draw_wide(img, x, y, f, s):
-    card(img, (x, y, x + 400, y + 64))
-    circle_power(img, x + 12 + 29, y + 32, 29, "开", f["label"])
+def draw_wide(img, x, y, f):
+    tile(img, (x, y, x + 400, y + 76))
+    power(img, x + 14 + 28, y + 38, 28, "开", f["label"])
     for i in range(6):
-        cx = x + 128 + i * (36 + 10) + 18
-        dot(img, cx, y + 32, 18, SWATCHES[i])
+        dot(img, x + 96 + i * 52, y + 38, 18, SWATCH_COLORS[i])
 
 
-def draw_square(img, x, y, f, s):
-    card(img, (x, y, x + 176, y + 176))
+def draw_square(img, x, y, f):
+    tile(img, (x, y, x + 176, y + 176))
     d = ImageDraw.Draw(img)
-    text(d, (x + 18, y + 26), "氛围灯", f["bold"], WHITE)
-    circle_power(img, x + 176 - 16 - 29, y + 14 + 29, 29, "开", f["label"])
+    d.text((x + 16, y + 26), "氛围灯", font=f["bold"], fill=WHITE)
+    power(img, x + 176 - 14 - 22, y + 32, 22, "开", f["small"])
     for row in range(2):
         for col in range(3):
-            cx = x + 46 + col * 44
-            cy = y + 92 + row * 52
-            dot(img, cx, cy, 19, SWATCHES[row * 3 + col])
+            dot(img, x + 44 + col * 44, y + 92 + row * 50, 19, SWATCH_COLORS[row * 3 + col])
 
 
-def draw_big(img, x, y, f, s):
-    card(img, (x, y, x + 400, y + 176))
+def draw_tall(img, x, y, f):
+    """2x4 — the CarPlay dashboard tile: power, 2x3 swatches, hue strip."""
+    tile(img, (x, y, x + 176, y + 400))
     d = ImageDraw.Draw(img)
-    text(d, (x + 20, y + 30), "氛围灯", f["bold"], WHITE)
-    circle_power(img, x + 400 - 18 - 34, y + 14 + 34, 34, "开", f["label"])
-    for i in range(6):
-        cx = x + 40 + i * (54 + 10) + 25
-        dot(img, cx, y + 92, 26, SWATCHES[i])
-    text(d, (x + 20, y + 146), "已开灯", f["tiny"], MUTED_70)
-    pill(img, (x + 312, y + 134, x + 384, y + 164), "打开", f["label"], solid_gradient=True)
+    d.text((x + 16, y + 30), "氛围灯", font=f["bold"], fill=WHITE)
+    power(img, x + 176 - 14 - 25, y + 34, 25, "开", f["label"])
 
-
-def circle_power(img, cx, cy, r, label, f, on=True):
-    """Round power button: brand gradient when on, dark glass when off."""
-    box = (cx - r, cy - r, cx + r, cy + r)
-    if on:
-        grad_rounded(img, box, (168, 85, 247), (217, 70, 239), int(r))
-
-        def ring(d, w, h):
-            d.ellipse((0, 0, w - 1, h - 1), outline=WHITE + (110,), width=2)
-
-        composited(img, box, ring)
-        color = WHITE
-    else:
-        def glass(d, w, h):
-            d.ellipse((0, 0, w - 1, h - 1), fill=(0, 0, 0, 60))
-            d.ellipse((0, 0, w - 1, h - 1), outline=WHITE + (140,), width=2)
-
-        composited(img, box, glass)
-        color = WHITE
-    ImageDraw.Draw(img).text((cx, cy), label, font=f, fill=color, anchor="mm")
-
-
-def draw_tall(img, x, y, f, s):
-    """2x4 portrait card, CarPlay style: round power, 3x2 swatches, hue strip."""
-    card(img, (x, y, x + 176, y + 400))
-    d = ImageDraw.Draw(img)
-
-    text(d, (x + 16, y + 30), "氛围灯", f["bold"], WHITE)
-    circle_power(img, x + 176 - 16 - 32, y + 16 + 32, 32, "开", f["label"], on=True)
-
-    # 3 rows x 2 cols of 36dp swatches (1.6x -> 58px), 16dp gap
     for row in range(3):
         for col in range(2):
-            cx = x + 46 + col * 84
-            cy = y + 127 + row * 75
-            dot(img, cx, cy, 29, SWATCHES[row * 2 + col])
+            dot(img, x + 52 + col * 72, y + 118 + row * 72, 24, SWATCH_COLORS[row * 2 + col])
 
-    # segmented hue strip (6 steps of 60 degrees)
-    sx, sy, sw, sh = x + 16, y + 315, 144, 45
-    seg = sw / 6
-    strip = [SWATCHES[2][1], SWATCHES[2][0], (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
-    hue_colors = [(255, 0, 0), (255, 255, 0), (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
-    for i, c in enumerate(hue_colors):
-        bx = (sx + i * seg, sy, sx + (i + 1) * seg - 2, sy + sh)
-        rr_box = (int(bx[0]), int(bx[1]), int(bx[2]), int(bx[3]))
-        d.rounded_rectangle(rr_box, radius=6, fill=c)
+    hue_strip(img, x + 16, y + 320, 144, 40)
+    d.text((x + 16, y + 376), "已开灯", font=f["small"], fill=IOS_SECONDARY)
 
-    text(d, (x + 16, y + 372), "已开灯", f["tiny"], MUTED_70)
+
+def draw_big(img, x, y, f):
+    """4x2 — power, six swatches, state + open. No hue strip: 110dp has no room for a
+    fourth row (power 42 + dots 40 + strip 24 + state 12 exceeds the tile)."""
+    tile(img, (x, y, x + 400, y + 176))
+    d = ImageDraw.Draw(img)
+    d.text((x + 18, y + 28), "氛围灯", font=f["bold"], fill=WHITE)
+    power(img, x + 400 - 16 - 26, y + 32, 26, "开", f["label"])
+    for i in range(6):
+        dot(img, x + 46 + i * 58, y + 90, 21, SWATCH_COLORS[i])
+    d.text((x + 18, y + 146), "已开灯", font=f["small"], fill=IOS_SECONDARY)
+    open_pill(img, (x + 318, y + 134, x + 384, y + 160), "打开", f["small"])
 
 
 def main():
     f = {
         "title": font(26),
-        "h": font(17),
         "bold": font(17),
-        "label": font(15),
-        "tiny": font(13),
+        "label": font(14),
+        "small": font(13),
+        "tiny": font(11),
+        "caption": font(12),
     }
 
-    W, H = 980, 580
+    W, H = 1000, 590
     img = Image.new("RGBA", (W, H), (6, 5, 14, 255))
-    vgrad(img, (0, 0, W, H), INK_INDIGO, SLATE_950)
+    vgrad(img, (0, 0, W, H), BACKDROP_TOP, BACKDROP_BOTTOM)
 
-    # ambient orbs so the cards sit on something
+    # wallpaper-ish glow so the dark tiles read as tiles
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ld = ImageDraw.Draw(layer)
-    for (cx, cy, r, c, a) in ((90, 40, 240, VIOLET_500, 90), (880, 90, 220, FUCHSIA_500, 80),
-                              (520, 580, 260, CYAN_500, 60)):
+    for (cx, cy, r, c, a) in ((120, 40, 240, (139, 92, 246), 70), (900, 560, 260, (217, 70, 239), 55)):
         ld.ellipse((cx - r, cy - r, cx + r, cy + r), fill=c + (a,))
-    img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(50)))
+    img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(60)))
 
     d = ImageDraw.Draw(img)
-    text(d, (36, 22), "氛围灯 · 桌面卡片（App Widget）", f["title"], WHITE)
-    text(d, (36, 54), "所有控件后台直连 FF:FF:10:98:3C:D9，不唤起 App；只有点卡片空白处才打开 App",
-         f["tiny"], MUTED_55)
+    d.text((36, 20), "氛围灯 · 桌面卡片（App Widget）", font=f["title"], fill=WHITE)
+    d.text((36, 52), "CarPlay 风格：深色磁贴 + 大圆角 + iOS 系统色控件；控件后台直连，不唤起 App",
+           font=f["small"], fill=(170, 165, 185))
 
-    draw_wide(img, 36, 104, f, None)
-    draw_small(img, 470, 104, f, None)
+    draw_wide(img, 36, 100, f)
+    draw_small(img, 470, 100, f)
     d = ImageDraw.Draw(img)
-    text(d, (36, 176), "4×1  开关 + 六色", f["tiny"], (255, 193, 7))
-    text(d, (470, 176), "2×1  只有开关", f["tiny"], (255, 193, 7))
+    d.text((36, 182), "4×1  圆形开关 + 六色", font=f["caption"], fill=(255, 193, 7))
+    d.text((470, 182), "2×1  圆形开关 + 状态", font=f["caption"], fill=(255, 193, 7))
 
-    draw_big(img, 36, 206, f, None)
-    draw_square(img, 470, 206, f, None)
+    draw_big(img, 36, 210, f)
+    draw_square(img, 470, 210, f)
     d = ImageDraw.Draw(img)
-    text(d, (36, 390), "4×2  完整卡片（含打开按钮）", f["tiny"], (255, 193, 7))
-    text(d, (470, 390), "2×2  3×2 色块方卡", f["tiny"], (255, 193, 7))
+    d.text((36, 394), "4×2  开关 + 六色 + 打开", font=f["caption"], fill=(255, 193, 7))
+    d.text((470, 394), "2×2  开关 + 3×2 色块", font=f["caption"], fill=(255, 193, 7))
 
-    draw_tall(img, 744, 104, f, None)
+    draw_tall(img, 760, 100, f)
     d = ImageDraw.Draw(img)
-    text(d, (744, 512), "2×4  竖版（新增）", f["tiny"], (255, 193, 7))
-    text(d, (36, 424), "2×4 竖卡为 CarPlay 风格：圆形开关 + 2×3 色块 + 分段色带（RemoteViews 不支持拖拽滑块）",
-         f["tiny"], MUTED_55)
+    d.text((760, 512), "2×4  竖卡（CarPlay 磁贴）", font=f["caption"], fill=(255, 193, 7))
+    d.text((36, 430), "色块颜色即下发颜色（iOS 系统色）；色带为分段式——RemoteViews 不支持拖拽滑块",
+           font=f["caption"], fill=(170, 165, 185))
 
     out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                        "docs", "widget-mockup.png")

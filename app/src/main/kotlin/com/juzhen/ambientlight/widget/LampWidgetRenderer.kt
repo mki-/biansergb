@@ -80,14 +80,14 @@ object LampWidgetRenderer {
             }
 
             if (spec.hasColors) {
-                WidgetActions.PALETTE.forEachIndexed { index, presetIndex ->
+                WidgetActions.SWATCHES.forEachIndexed { index, _ ->
                     views.setOnClickPendingIntent(
                         COLOR_VIEW_IDS[index],
                         WidgetIntents.action(
                             context,
                             widgetId,
                             WidgetActions.CODE_COLOR_BASE + index,
-                            colorIndex = presetIndex,
+                            colorIndex = index,
                         ),
                     )
                 }

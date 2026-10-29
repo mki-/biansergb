@@ -6,7 +6,6 @@ import com.juzhen.ambient.protocol.LampCommand
 import com.juzhen.ambient.protocol.PowerMode
 import com.juzhen.ambient.protocol.Rgb
 import com.juzhen.ambientlight.ble.QuickBleWriter
-import com.juzhen.ambientlight.ui.PresetColors
 import com.juzhen.ambientlight.ui.hueToRgb
 
 /**
@@ -37,7 +36,7 @@ object LampQuickAction {
         }
 
         val target: Rgb? = when {
-            colorIndex != null -> PresetColors.getOrNull(colorIndex)?.rgb
+            colorIndex != null -> WidgetActions.SWATCHES.getOrNull(colorIndex)
             hueDegrees != null -> hueToRgb(hueDegrees.toFloat())
             else -> null
         }

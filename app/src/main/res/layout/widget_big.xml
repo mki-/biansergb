@@ -109,7 +109,7 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:text="@string/widget_state_connect"
-            android:textColor="#CCFFFFFF"
+            android:textColor="#8E8E93"
             android:textSize="11sp" />
 
         <TextView
@@ -121,7 +121,7 @@
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
             android:text="@string/widget_open"
-            android:textColor="#7C3AED"
+            android:textColor="#0B0B0F"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
